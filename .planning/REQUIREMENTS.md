@@ -2,11 +2,29 @@
 
 **Project:** LockIn
 **Version:** v1 (MVP for TFM - June 2026)
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-08
 
 ## Overview
 
-Sistema multi-agente de inversión basado en Value Investing con arquitectura dialéctica (Bulls vs Bears) y cumplimiento EU AI Act. v1 incluye 8 agentes, backtesting completo, paper trading por 6 meses, y dashboard de explainabilidad.
+Sistema multi-agente de inversión basado en Value Investing híbrido (Graham × VeTO × VoMC) con arquitectura dialéctica (Bull ⇄ Bear) y síntesis Bayesiana. v1 incluye **7 agentes** orquestados con LangGraph, backtesting completo, paper trading por 6 meses, y dashboard de explainabilidad tipo "caja de cristal" para cumplimiento EU AI Act.
+
+**Agent Architecture (v1):**
+1. Macro Oracle (regime detection)
+2. Value Hunter / Bull (EPV/EVA/RIM fundamental analysis)
+3. Strategist (simplified VeTO + sentiment)
+4. Bear (devil's advocate with dialectical iteration)
+5. Guardian (risk management with veto power)
+6. Judge (Bayesian consensus synthesis)
+7. Optimizer (Kelly Criterion portfolio construction)
+
+**Key Changes from Initial Design:**
+- ~~8 agents~~ → **7 agents** (Sentiment folded into Strategist, Historian/Chartist/Trader deferred to v2)
+- Added: Bull-Bear dialectical iteration (minimum 1 back-and-forth)
+- Added: Guardian veto power as separate concern from consensus
+- Added: Bayesian synthesis in Judge (not simple voting/averaging)
+- Simplified: VeTO scoring in v1 (keyword + sentiment), full NLP model in v2
+
+**Note:** Requirements below reference original 8-agent architecture but remain functionally valid. Agent-specific requirements map to the 7-agent structure with minor adaptations (e.g., AGENTS-02 Sentiment now part of AGENTS-03 Strategist).
 
 ---
 
