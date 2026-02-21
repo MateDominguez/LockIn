@@ -27,6 +27,13 @@
 
 **Goal:** Establish LangGraph infrastructure with auditable state management, checkpointing, and HITL mechanism.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — InvestmentState schema, config loader, 7 mock agents
+- [ ] 01-02-PLAN.md — StateGraph builder with conditional edges + audit trail logger
+- [ ] 01-03-PLAN.md — HITL interrupt in judge + PostgreSQL checkpointing + end-to-end tests
+
 **Success Criteria:**
 - [ ] LangGraph StateGraph compiles and runs end-to-end with mock agents
 - [ ] InvestmentState schema defined with all required fields
