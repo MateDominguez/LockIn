@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
-**Last Updated:** 2026-02-20
-**Current Phase:** Pre-Phase 1 (Environment Setup Complete)
-**Status:** Ready to plan Phase 1
+**Last Updated:** 2026-02-21
+**Current Phase:** Phase 1 - Foundation (In Progress)
+**Status:** Plan 01-01 complete (state schema + mock agents)
 
 ---
 
@@ -12,18 +12,19 @@
 
 **Core Value:** Transparencia total mediante arquitectura "caja de cristal" — cada decisión trazable, explicable, auditable.
 
-**Current Focus:** Finalizar documentación de arquitectura y preparar inicio de Phase 1 (Foundation)
+**Current Focus:** Phase 1 Foundation — plan 01-01 complete, continue with graph builder (01-02)
 
 ---
 
 ## Current Position
 
-**Phase:** 0 (Planning) of 6
-**Progress:** ████░░░░░░ 40% (Planning complete, implementation pending)
+**Phase:** 1 (Foundation) of 6
+**Plan:** 1 of 3 in Phase 1
+**Progress:** ████░░░░░░ 43% (1/3 Phase 1 plans complete)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
-  Phase 1 - Foundation    [░░░░░░░░░░]   0%
+  Phase 1 - Foundation    [███░░░░░░░]  33%  (plan 01-01 done)
   Phase 2 - Data Layer    [░░░░░░░░░░]   0%
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
@@ -34,6 +35,12 @@
 ---
 
 ## Recent Decisions
+
+**Plan 01-01 Implementation (2026-02-21):**
+- TypedDict total=False for InvestmentState — LangGraph StateGraph requires TypedDict for partial merge; Pydantic/dataclass would need extra conversion
+- bull_iteration lives in InvestmentState and is incremented by mock_bear — conditional edge reads this to count debate rounds
+- mock_value_hunter emits bull_refined_thesis + bull_defense only when bull_iteration > 0 — mirrors real agent's post-debate output path
+- Settings defaults all missing .env vars to empty string — agents validate required keys at call-time, not import-time
 
 **Agent Architecture Finalized (2026-02-08):**
 - ✓ 7 agents for v1 (Macro Oracle, Value Hunter, Strategist, Bear, Guardian, Judge, Optimizer)
@@ -73,11 +80,11 @@
 - [x] Initialize Python virtual environment (.venv via uv, Python 3.12, 2026-02-20)
 
 ### Short-term (Phase 1 - Week 1)
-- [ ] Define InvestmentState TypedDict schema
-- [ ] Create LangGraph StateGraph structure
-- [ ] Implement mock agents (dummy functions)
-- [ ] Set up PostgreSQL checkpointing
-- [ ] Create audit_logs table schema
+- [x] Define InvestmentState TypedDict schema (2026-02-21)
+- [x] Implement mock agents (dummy functions) (2026-02-21)
+- [ ] Create LangGraph StateGraph structure (plan 01-02)
+- [ ] Set up PostgreSQL checkpointing (plan 01-02)
+- [ ] Create audit_logs table schema (plan 01-03)
 
 ---
 
@@ -95,15 +102,15 @@
 
 ## Session Continuity
 
-**Last session:** 2026-02-20
-**Activity:** Environment setup — Supabase configured, project structure created, uv venv + all deps installed, .gitignore + .env.example created, knowledge_base deleted (migrated to Notion), MCP servers configured (GitHub, Notion, Supabase)
-**Next action:** Plan Phase 1 with `/gsd:plan-phase 1`
+**Last session:** 2026-02-21T04:25:22Z
+**Activity:** Executed plan 01-01 — InvestmentState TypedDict + 7 mock agent functions
+**Stopped at:** Completed 01-01-PLAN.md
+**Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Check ROADMAP.md Phase 1 for next steps
-3. If ready to plan Phase 1: Create `.planning/phases/01-foundation/01-PLAN.md`
-4. If questions about architecture: Reference PROJECT.md or `.planning/knowledge_base/`
+2. Execute plan 01-02: LangGraph StateGraph + PostgreSQL checkpointing
+3. Reference 01-01-SUMMARY.md for InvestmentState field names and agent signatures
 
 ---
 
@@ -120,10 +127,12 @@
 - ✓ STATE.md (this file)
 
 ### Phase 1 - Foundation
-**Status:** Not Started
+**Status:** In Progress (1/3 plans complete)
 **Duration:** 2 weeks
 **Goal:** LangGraph infrastructure with checkpointing + HITL
 **Success Criteria:** StateGraph compiles, checkpointing works, audit trail logs all transitions, HITL interrupt functional
+**Completed plans:**
+- [x] 01-01 — InvestmentState TypedDict + 7 mock agents (2026-02-21)
 
 ### Phase 2 - Data Layer
 **Status:** Not Started
@@ -150,7 +159,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 066b42f - "wip: update handoff - docs pushed to GitHub for review"
+**Last commit:** 66c4642 - "feat(01-01): add 7 mock agent functions"
 
 **Uncommitted changes:**
 - PROJECT.md (agent architecture updated)
