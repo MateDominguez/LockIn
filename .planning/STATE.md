@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-02-21
 **Current Phase:** Phase 1 - Foundation (In Progress)
-**Status:** Plan 01-01 complete (state schema + mock agents)
+**Status:** Plan 01-02 complete (StateGraph + audit trail)
 
 ---
 
@@ -12,19 +12,19 @@
 
 **Core Value:** Transparencia total mediante arquitectura "caja de cristal" — cada decisión trazable, explicable, auditable.
 
-**Current Focus:** Phase 1 Foundation — plan 01-01 complete, continue with graph builder (01-02)
+**Current Focus:** Phase 1 Foundation — plans 01-01 and 01-02 complete, continue with HITL (01-03)
 
 ---
 
 ## Current Position
 
 **Phase:** 1 (Foundation) of 6
-**Plan:** 1 of 3 in Phase 1
-**Progress:** ████░░░░░░ 43% (1/3 Phase 1 plans complete)
+**Plan:** 2 of 3 in Phase 1
+**Progress:** █████░░░░░ 57% (2/3 Phase 1 plans complete)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
-  Phase 1 - Foundation    [███░░░░░░░]  33%  (plan 01-01 done)
+  Phase 1 - Foundation    [██████░░░░]  67%  (plans 01-01 + 01-02 done)
   Phase 2 - Data Layer    [░░░░░░░░░░]   0%
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
@@ -35,6 +35,13 @@
 ---
 
 ## Recent Decisions
+
+**Plan 01-02 Implementation (2026-02-21):**
+- Separate short-lived psycopg.connect() for audit writes — LangGraph checkpointer holds open transactions; sharing connection can deadlock or corrupt checkpoint state
+- audit_logs table schema (Supabase) uses `payload` JSONB (not `state_snapshot`) — adapted INSERT to match actual schema discovered at runtime
+- agent_start logs only asset_ticker + bull_iteration (minimal payload); agent_end logs full agent output dict
+- MAX_BULL_BEAR_ITERATIONS=2 constant defined in builder.py — bear runs twice, value_hunter rebuts twice, then exits to strategist
+- Conditional edge mapping uses string `'__end__': END` for guardian veto path — confirmed END == '__end__' in LangGraph
 
 **Plan 01-01 Implementation (2026-02-21):**
 - TypedDict total=False for InvestmentState — LangGraph StateGraph requires TypedDict for partial merge; Pydantic/dataclass would need extra conversion
@@ -82,9 +89,10 @@
 ### Short-term (Phase 1 - Week 1)
 - [x] Define InvestmentState TypedDict schema (2026-02-21)
 - [x] Implement mock agents (dummy functions) (2026-02-21)
-- [ ] Create LangGraph StateGraph structure (plan 01-02)
-- [ ] Set up PostgreSQL checkpointing (plan 01-02)
-- [ ] Create audit_logs table schema (plan 01-03)
+- [x] Create LangGraph StateGraph structure (plan 01-02, 2026-02-21)
+- [x] Implement audit trail logger (plan 01-02, 2026-02-21)
+- [ ] Set up PostgreSQL checkpointing (plan 01-03)
+- [ ] Implement HITL interrupt at judge node (plan 01-03)
 
 ---
 
@@ -102,15 +110,16 @@
 
 ## Session Continuity
 
-**Last session:** 2026-02-21T04:25:22Z
-**Activity:** Executed plan 01-01 — InvestmentState TypedDict + 7 mock agent functions
-**Stopped at:** Completed 01-01-PLAN.md
+**Last session:** 2026-02-21T04:31:35Z
+**Activity:** Executed plan 01-02 — LangGraph StateGraph + audit trail
+**Stopped at:** Completed 01-02-PLAN.md
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Execute plan 01-02: LangGraph StateGraph + PostgreSQL checkpointing
-3. Reference 01-01-SUMMARY.md for InvestmentState field names and agent signatures
+2. Execute plan 01-03: PostgreSQL checkpointing + HITL interrupt at judge node
+3. Reference 01-02-SUMMARY.md for create_graph signature and audit_node pattern
+4. Key: add `interrupt_before="judge"` to builder.compile() call in create_graph
 
 ---
 
@@ -127,12 +136,13 @@
 - ✓ STATE.md (this file)
 
 ### Phase 1 - Foundation
-**Status:** In Progress (1/3 plans complete)
+**Status:** In Progress (2/3 plans complete)
 **Duration:** 2 weeks
 **Goal:** LangGraph infrastructure with checkpointing + HITL
 **Success Criteria:** StateGraph compiles, checkpointing works, audit trail logs all transitions, HITL interrupt functional
 **Completed plans:**
 - [x] 01-01 — InvestmentState TypedDict + 7 mock agents (2026-02-21)
+- [x] 01-02 — LangGraph StateGraph + audit trail (2026-02-21)
 
 ### Phase 2 - Data Layer
 **Status:** Not Started
@@ -159,15 +169,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 66c4642 - "feat(01-01): add 7 mock agent functions"
-
-**Uncommitted changes:**
-- PROJECT.md (agent architecture updated)
-- REQUIREMENTS.md (overview updated with 7-agent architecture)
-- ROADMAP.md (created)
-- STATE.md (created)
-
-**Next commit:** "docs: finalize v1 architecture - 7 agents with Bayesian synthesis + roadmap"
+**Last commit:** efe1e01 - "feat(01-02): build StateGraph with 7 nodes and conditional edges"
 
 ---
 
@@ -198,4 +200,4 @@
 ---
 
 *State initialized: 2026-02-08*
-*Ready to begin Phase 1 after user approval*
+*Last updated: 2026-02-21 after plan 01-02*
