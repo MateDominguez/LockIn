@@ -1,6 +1,11 @@
 """lockin.graph — LangGraph StateGraph and supporting types."""
 
-from lockin.graph.builder import create_graph
+from lockin.graph.builder import create_graph, postgres_checkpointer
 from lockin.graph.state import InvestmentState, create_initial_state
 
-__all__ = ["InvestmentState", "create_initial_state", "create_graph"]
+__all__ = [
+    "InvestmentState",
+    "create_initial_state",
+    "create_graph",
+    "postgres_checkpointer",
+]

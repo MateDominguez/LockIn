@@ -14,7 +14,7 @@ Graph flow:
     -> bear  ---[loop up to MAX_BULL_BEAR_ITERATIONS]---> value_hunter
              ---[iterations reached]------------------> strategist
     -> guardian  ---[veto=True]---> END
-                 ---[veto=False]--> judge
+                 ---[veto=False]--> judge  (HITL interrupt if conviction < threshold)
     -> optimizer
     -> END
 
@@ -28,14 +28,23 @@ Usage::
         create_initial_state("AAPL"),
         config={"configurable": {"thread_id": "my-thread"}},
     )
+
+    # PostgreSQL checkpointing (production):
+    from lockin.graph.builder import postgres_checkpointer
+    with postgres_checkpointer("postgresql://...") as cp:
+        graph = create_graph(checkpointer=cp)
+        result = graph.invoke(...)
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 from lockin.agents.mock import (
     mock_bear,
@@ -57,6 +66,10 @@ from lockin.utils.audit import audit_node
 # With MAX=2 the graph executes:
 #   bear(iter=0->1) -> value_hunter -> bear(iter=1->2) -> strategist
 MAX_BULL_BEAR_ITERATIONS = 2
+
+# Conviction below this threshold triggers a HITL interrupt at the judge node.
+# The human reviewer can approve or override the recommendation.
+JUDGE_HITL_THRESHOLD = 0.5
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +97,88 @@ def should_guardian_veto(state: InvestmentState) -> str:
 
 
 # ---------------------------------------------------------------------------
+# HITL-enabled judge node
+# ---------------------------------------------------------------------------
+
+
+def judge_with_hitl(state: dict, config: RunnableConfig) -> dict:
+    """Judge node with HITL interrupt for low-conviction decisions.
+
+    When judge_conviction falls below JUDGE_HITL_THRESHOLD, the node calls
+    interrupt() which causes LangGraph to pause execution and surface the
+    interrupt payload to the caller. The graph is resumed by invoking with
+    Command(resume=value), at which point this entire function re-executes
+    and interrupt() returns the human-provided value instead of pausing.
+
+    CRITICAL: Do NOT place irreversible side effects before interrupt().
+    This entire node re-executes from the top when resumed; side effects
+    before interrupt() will execute twice.
+    """
+    # Run judge logic first (safe to re-run on resume)
+    result = mock_judge(state, config)
+
+    conviction = result.get("judge_conviction", 1.0)
+    if conviction < JUDGE_HITL_THRESHOLD:
+        # Pause execution — returns to caller with __interrupt__ in result.
+        # On resume, interrupt() returns the Command(resume=...) value.
+        human_input = interrupt({
+            "reason": "Low conviction — human review required",
+            "conviction": conviction,
+            "recommendation": result.get("judge_recommendation"),
+            "narrative": result.get("judge_narrative"),
+        })
+        result["human_review"] = human_input
+        result["judge_hitl"] = True
+        result["judge_hitl_reason"] = (
+            f"Conviction {conviction} below threshold {JUDGE_HITL_THRESHOLD}"
+        )
+    else:
+        result["judge_hitl"] = False
+        result["judge_hitl_reason"] = ""
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL checkpointer context manager
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def postgres_checkpointer(database_url: str):
+    """Context manager yielding a configured PostgresSaver.
+
+    Creates the checkpoint tables if they do not already exist (saver.setup()).
+    Use this for production deployments where state persistence across
+    invocations and HITL resume is required.
+
+    Example::
+
+        from lockin.graph.builder import create_graph, postgres_checkpointer
+        from lockin.utils.config import get_settings
+
+        settings = get_settings()
+        with postgres_checkpointer(settings.database_url) as cp:
+            graph = create_graph(checkpointer=cp)
+            result = graph.invoke(
+                create_initial_state("AAPL"),
+                {"configurable": {"thread_id": "prod-run-1"}},
+            )
+
+    Args:
+        database_url: PostgreSQL connection string (psycopg-compatible DSN or URL).
+
+    Yields:
+        A ready-to-use PostgresSaver instance.
+    """
+    from langgraph.checkpoint.postgres import PostgresSaver
+
+    with PostgresSaver.from_conn_string(database_url) as saver:
+        saver.setup()  # Creates checkpoint tables if they don't exist
+        yield saver
+
+
+# ---------------------------------------------------------------------------
 # Graph factory
 # ---------------------------------------------------------------------------
 
@@ -96,11 +191,11 @@ def create_graph(
 
     Args:
         checkpointer: Optional LangGraph checkpoint saver (e.g. MemorySaver or
-            AsyncPostgresSaver). When provided, graph state is persisted between
-            invocations, enabling Human-in-the-Loop interrupts (Plan 03).
+            PostgresSaver). When provided, graph state is persisted between
+            invocations, enabling Human-in-the-Loop interrupts and resume.
         agent_overrides: Optional dict mapping agent name -> callable. Used in
             tests to inject custom agents without modifying the graph structure.
-            Example: {"guardian": my_strict_guardian}
+            Example: {"guardian": my_strict_guardian, "judge": my_judge}
 
     Returns:
         Compiled LangGraph CompiledGraph ready for .invoke() / .stream().
@@ -132,9 +227,12 @@ def create_graph(
         "guardian",
         audit_node("guardian", overrides.get("guardian", mock_guardian)),
     )
+    # Judge uses judge_with_hitl by default (HITL interrupt when conviction < threshold)
+    # Can be overridden in tests via agent_overrides["judge"]
+    judge_fn = overrides.get("judge", judge_with_hitl)
     builder.add_node(
         "judge",
-        audit_node("judge", overrides.get("judge", mock_judge)),
+        audit_node("judge", judge_fn),
     )
     builder.add_node(
         "optimizer",
@@ -169,7 +267,7 @@ def create_graph(
         {"__end__": END, "judge": "judge"},
     )
 
-    # Judge -> optimizer (HITL interrupt will be added in Plan 03)
+    # Judge -> optimizer
     builder.add_edge("judge", "optimizer")
 
     # ------------------------------------------------------------------
