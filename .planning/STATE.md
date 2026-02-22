@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-02-22
 **Current Phase:** Phase 2 - Data Layer (In progress)
-**Status:** Phase 2 plan 02-01 complete — foundational types, protocols, exceptions, cache
+**Status:** Phase 2 plans 02-01 and 02-03 complete — foundational types + validation + storage
 
 ---
 
@@ -18,13 +18,13 @@
 
 ## Current Position
 
-**Phase:** 2 of 6 (In progress — 1/4 plans complete)
-**Progress:** ████████░░ 20% (Phase 1 complete + 1 plan in Phase 2)
+**Phase:** 2 of 6 (In progress — 2/4 plans complete)
+**Progress:** █████████░ 22% (Phase 1 complete + 2 plans in Phase 2)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
-  Phase 2 - Data Layer    [██░░░░░░░░]  25%  (1/4 plans: 02-01 complete)
+  Phase 2 - Data Layer    [████░░░░░░]  50%  (2/4 plans: 02-01, 02-03 complete)
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
@@ -34,6 +34,13 @@
 ---
 
 ## Recent Decisions
+
+**Plan 02-03 Implementation (2026-02-22):**
+- Sentinel thread_id "data_validation" used in audit logs from DataValidator — validator has no LangGraph thread context; static string identifies the source clearly
+- FRED_SERIES_IDS duplicated in storage.py (not imported from fred_source.py) to avoid circular imports between data source and storage modules
+- observation_date stored as NULL in macro_data by store_macro_data — FRED observation date parsing is fred_source.py's responsibility (plan 02-04)
+- Storage errors caught and logged to stderr, never re-raised — a DB outage at storage time must not propagate back to fail the data fetch pipeline
+- HITL threshold >200% change: warning-only for 50-200% (outlier_flags set, no HITL), HITL trigger for >200%
 
 **Plan 02-01 Implementation (2026-02-22):**
 - FundamentalsResult includes fiscal_year_end: date | None — required by storage.py (plan 02-05) to key fundamentals table correctly; None if YFinanceSource cannot determine it
@@ -80,9 +87,9 @@
 ### Phase 2 - Data Layer (In Progress)
 - [x] 02-01: Types, protocols, exceptions, TTL cache (DONE)
 - [ ] 02-02: YFinanceSource — implements DataSourceProtocol
-- [ ] 02-03: FREDSource — implements MacroSourceProtocol
-- [ ] 02-04: Validator — uses REQUIRED_FUNDAMENTAL_FIELDS, returns ValidationResult
-- [ ] 02-05: Storage — PostgreSQL schema, uses fiscal_year_end to key fundamentals
+- [x] 02-03: DataValidator + storage functions + DB setup script (DONE)
+- [ ] 02-04: FREDSource — implements MacroSourceProtocol
+- [ ] 02-05: (remaining data layer work)
 
 ---
 
@@ -104,15 +111,17 @@
 ## Session Continuity
 
 **Last session:** 2026-02-22
-**Activity:** Executed Phase 2 plan 02-01 — types, protocols, exceptions, TTL cache
-**Stopped at:** Completed 02-01-PLAN.md (2/2 tasks, 2 commits)
+**Activity:** Executed Phase 2 plan 02-03 — DataValidator, storage functions, DB setup script
+**Stopped at:** Completed 02-03-PLAN.md (2/2 tasks, 2 commits)
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
 2. Execute 02-02: YFinanceSource (`get_fundamentals`, point-in-time, TTLCache)
-3. Reference `src/lockin/data/protocols.py` for interface to implement
-4. Reference `src/lockin/data/cache.py` for TTLCache usage
+3. Execute 02-04: FREDSource — implements MacroSourceProtocol
+4. Reference `src/lockin/data/protocols.py` for interface to implement
+5. Reference `src/lockin/data/cache.py` for TTLCache usage
+6. After YFinanceSource: integrate with store_fundamentals and store_asset from storage.py
 
 ---
 
@@ -140,6 +149,7 @@
 **Status:** In Progress (1/4 plans complete)
 **Dependencies:** Phase 1 complete ✓
 **Plan 02-01:** Complete ✓ — types.py, exceptions.py, protocols.py, cache.py
+**Plan 02-03:** Complete ✓ — validator.py, storage.py, scripts/setup_data_tables.py
 
 ### Phase 3 - Agents & RAG
 **Status:** Not Started
@@ -162,7 +172,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** e32baa5 — feat(02-01): create TTL cache with stale fallback
+**Last commit:** 0e48e53 — feat(02-03): implement storage functions and data table setup script
 
 ---
 
@@ -185,6 +195,11 @@
 - Protocols: `from lockin.data.protocols import DataSourceProtocol, MacroSourceProtocol`
 - Exceptions: `from lockin.data.exceptions import DataUnavailableError, LookAheadError`
 - Cache: `from lockin.data.cache import TTLCache, TTL_FUNDAMENTALS, TTL_MACRO`
+
+**Data Layer Contracts (02-03):**
+- Validator: `from lockin.data.validator import DataValidator`
+- Storage: `from lockin.data.storage import store_fundamentals, store_macro_data, store_asset, FINANCIAL_FIELDS, FRED_SERIES_IDS`
+- DB setup: `uv run python scripts/setup_data_tables.py` (run after setup_db.py)
 
 **Timeline:**
 - Week 0-2: Phase 1 (Foundation) ✓
