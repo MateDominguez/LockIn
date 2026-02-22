@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-02-22
-**Current Phase:** Phase 2 - Data Layer (In progress)
-**Status:** Phase 2 plans 02-01, 02-02, and 02-03 complete — types/protocols + data sources + validator/storage
+**Current Phase:** Phase 3 - Agents + RAG (Not Started)
+**Status:** Phase 2 complete — all 4 plans executed (types/protocols + data sources + validator/storage + public API + integration tests)
 
 ---
 
@@ -18,13 +18,13 @@
 
 ## Current Position
 
-**Phase:** 2 of 6 (In progress — 3/4 plans complete)
-**Progress:** ██████████░ 25% (Phase 1 complete + 3 plans in Phase 2)
+**Phase:** 3 of 6 (Phase 2 complete — moving to Phase 3)
+**Progress:** ████████████░ 33% (Phase 1 + Phase 2 complete)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
-  Phase 2 - Data Layer    [██████░░░░]  75%  (3/4 plans: 02-01, 02-02, 02-03 complete)
+✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
@@ -42,6 +42,16 @@
 - NAPM series unavailable on FRED — manufacturing_pmi returns None gracefully (series deleted from public FRED)
 - get_series_as_of_date() returns DataFrame with [realtime_start, date, value] columns (not a Series)
 - fiscal_year_end taken from income_stmt.columns[0] after PIT filter; balance_sheet used as fallback
+
+**Plan 02-04 Implementation (2026-02-22):**
+- LOOKAHEAD_DAYS defined as module constant dict (prices=0, fundamentals=7, macro=14) — informational metadata for orchestration agents
+- _NoMacroSource fallback defers DataUnavailableError to call-time when FRED_API_KEY absent — importing lockin.data never crashes
+- Live bypass calls source with as_of_date=None (not date.today()) — sources treat None as "latest available"
+- fiscal_year_end fallback: if not in result, use as_of_date or date.today() for storage key
+- store_asset called before store_fundamentals to satisfy foreign key dependency in assets table
+- Public API pattern: agents import from lockin.data only, never from submodules directly
+- Lazy singleton: _default_pit + _default_validator initialized on first call (no import-time network calls)
+- Storage non-fatal: try/except around all DB writes, print to stderr, always return data
 
 **Plan 02-03 Implementation (2026-02-22):**
 - Sentinel thread_id "data_validation" used in audit logs from DataValidator — validator has no LangGraph thread context; static string identifies the source clearly
@@ -92,11 +102,14 @@
 
 ## Pending Todos
 
-### Phase 2 - Data Layer (In Progress)
+### Phase 2 - Data Layer (COMPLETE)
 - [x] 02-01: Types, protocols, exceptions, TTL cache (DONE)
 - [x] 02-02: YFinanceSource + FREDSource — implement DataSourceProtocol + MacroSourceProtocol (DONE)
 - [x] 02-03: DataValidator + storage functions + DB setup script (DONE)
-- [ ] 02-04: (remaining data layer work)
+- [x] 02-04: PointInTimeData wrapper + public API + integration tests (DONE)
+
+### Phase 3 - Agents + RAG (Up Next)
+- [ ] 03-01: (pending planning)
 
 ---
 
@@ -118,14 +131,14 @@
 ## Session Continuity
 
 **Last session:** 2026-02-22
-**Activity:** Executed Phase 2 plan 02-02 — YFinanceSource and FREDSource concrete data fetchers
-**Stopped at:** Completed 02-02-PLAN.md (2/2 tasks, 3 commits incl. bug fix)
+**Activity:** Executed Phase 2 plan 02-04 — PointInTimeData wrapper + public API + integration tests. Phase 2 COMPLETE.
+**Stopped at:** Completed 02-04-PLAN.md (3/3 tasks, 3 commits). Phase 2 all 4 plans done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Execute remaining Phase 2 plans (02-04 if any remain)
-3. YFinanceSource and FREDSource are ready in src/lockin/data/
+2. Begin Phase 3 planning (Agents + RAG)
+3. Data layer public API ready: from lockin.data import get_fundamentals, get_macro_indicators
 
 ---
 
@@ -150,11 +163,13 @@
 - ✓ 6 passing E2E tests (MemorySaver, all CORE-01..04)
 
 ### Phase 2 - Data Layer
-**Status:** In Progress (3/4 plans complete)
+**Status:** Complete ✓
+**Completed:** 2026-02-22
 **Dependencies:** Phase 1 complete ✓
 **Plan 02-01:** Complete ✓ — types.py, exceptions.py, protocols.py, cache.py
 **Plan 02-02:** Complete ✓ — yfinance_source.py, fred_source.py
 **Plan 02-03:** Complete ✓ — validator.py, storage.py, scripts/setup_data_tables.py
+**Plan 02-04:** Complete ✓ — point_in_time.py, __init__.py (public API), tests/integration/test_data_pipeline.py (15 tests)
 
 ### Phase 3 - Agents & RAG
 **Status:** Not Started
@@ -209,6 +224,13 @@
 - Validator: `from lockin.data.validator import DataValidator`
 - Storage: `from lockin.data.storage import store_fundamentals, store_macro_data, store_asset, FINANCIAL_FIELDS, FRED_SERIES_IDS`
 - DB setup: `uv run python scripts/setup_data_tables.py` (run after setup_db.py)
+
+**Data Layer Public API (02-04) — agents use ONLY this:**
+- Fundamentals: `from lockin.data import get_fundamentals`
+- Macro: `from lockin.data import get_macro_indicators`
+- PIT wrapper: `from lockin.data import PointInTimeData`
+- All types/exceptions re-exported: `from lockin.data import FundamentalsResult, MacroResult, DataUnavailableError, ...`
+- Integration tests: `python -m pytest tests/integration/test_data_pipeline.py -v` (15 tests, no network required)
 
 **Timeline:**
 - Week 0-2: Phase 1 (Foundation) ✓
