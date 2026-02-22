@@ -238,10 +238,12 @@ class YFinanceSource:
                     else:
                         raise DataUnavailableError(ticker=ticker, source="yfinance")
                 else:
-                    raw_data: dict[str, pd.DataFrame] = {
+                    raw_data: dict[str, Any] = {
                         "income_stmt": income_stmt if income_stmt is not None else pd.DataFrame(),
                         "balance_sheet": balance_sheet if balance_sheet is not None else pd.DataFrame(),
                         "cashflow": cashflow if cashflow is not None else pd.DataFrame(),
+                        # Store fetch timestamp so cached results preserve it
+                        "fetched_at": datetime.now(timezone.utc),
                     }
                     # Store raw DataFrames in cache
                     self._cache.set(cache_key, raw_data)
@@ -324,7 +326,10 @@ class YFinanceSource:
             "fiscal_year_end": fiscal_year_end,
             # Metadata
             "source": "yfinance",
-            "fetched_at": datetime.now(timezone.utc),
+            # Use stored fetched_at so cached results preserve the original
+            # fetch timestamp. Falls back to now() for stale cache results
+            # that may not have the key (backward compat).
+            "fetched_at": cached_raw.get("fetched_at", datetime.now(timezone.utc)),
             "as_of_date": as_of_date.isoformat() if as_of_date else "live",
             "missing_fields": missing_fields,
             "outlier_flags": {},  # Populated by validator in Plan 02-04
