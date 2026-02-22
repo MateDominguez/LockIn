@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
-**Last Updated:** 2026-02-21
-**Current Phase:** Phase 2 - Data Layer (Ready to plan)
-**Status:** Phase 1 complete ✓ — all 3 plans executed, 13/13 must-haves verified
+**Last Updated:** 2026-02-22
+**Current Phase:** Phase 2 - Data Layer (In progress)
+**Status:** Phase 2 plan 02-01 complete — foundational types, protocols, exceptions, cache
 
 ---
 
@@ -12,19 +12,19 @@
 
 **Core Value:** Transparencia total mediante arquitectura "caja de cristal" — cada decisión trazable, explicable, auditable.
 
-**Current Focus:** Phase 1 complete. Next: Plan and execute Phase 2 (Data Layer).
+**Current Focus:** Phase 2 Data Layer — executing plans 02-01 through 02-05.
 
 ---
 
 ## Current Position
 
-**Phase:** 1 of 6 ✓ COMPLETE
-**Progress:** ████████░░ 17% (1/6 phases complete)
+**Phase:** 2 of 6 (In progress — 1/4 plans complete)
+**Progress:** ████████░░ 20% (Phase 1 complete + 1 plan in Phase 2)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
-  Phase 2 - Data Layer    [░░░░░░░░░░]   0%
+  Phase 2 - Data Layer    [██░░░░░░░░]  25%  (1/4 plans: 02-01 complete)
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
@@ -34,6 +34,13 @@
 ---
 
 ## Recent Decisions
+
+**Plan 02-01 Implementation (2026-02-22):**
+- FundamentalsResult includes fiscal_year_end: date | None — required by storage.py (plan 02-05) to key fundamentals table correctly; None if YFinanceSource cannot determine it
+- TTLCache is instance-based (not singleton) — callers inject fresh cache for test isolation
+- DataSourceProtocol and MacroSourceProtocol are @runtime_checkable — enables isinstance(source, DataSourceProtocol) assertions in tests without inheritance
+- TTL_FUNDAMENTALS=86400s (24h), TTL_MACRO=604800s (7 days) defined in cache.py so all callers use consistent values
+- Exception attributes on instance: e.ticker, e.source for DataUnavailableError; e.as_of_date, e.data_date for LookAheadError
 
 **Plan 01-03 Implementation (2026-02-21):**
 - judge_with_hitl runs mock_judge first then calls interrupt() conditionally — avoids side effects before interrupt() since node re-executes on resume
@@ -70,13 +77,12 @@
 
 ## Pending Todos
 
-### Phase 2 - Data Layer (Next)
-- [ ] Plan Phase 2: `/gsd:plan-phase 2`
-- [ ] yfinance integration: get_fundamentals(ticker, as_of_date)
-- [ ] FRED integration: get_macro_indicators(as_of_date)
-- [ ] Point-in-time wrapper (no look-ahead bias)
-- [ ] Data validation (outlier detection, missing fields)
-- [ ] PostgreSQL schema: assets, prices, fundamentals, macro_data
+### Phase 2 - Data Layer (In Progress)
+- [x] 02-01: Types, protocols, exceptions, TTL cache (DONE)
+- [ ] 02-02: YFinanceSource — implements DataSourceProtocol
+- [ ] 02-03: FREDSource — implements MacroSourceProtocol
+- [ ] 02-04: Validator — uses REQUIRED_FUNDAMENTAL_FIELDS, returns ValidationResult
+- [ ] 02-05: Storage — PostgreSQL schema, uses fiscal_year_end to key fundamentals
 
 ---
 
@@ -84,9 +90,12 @@
 
 **None currently.**
 
+**Known Limitations (deferred):**
+- **audit_node duplicate agent_start on HITL resume** (defer to Phase 3): `audit_node` logs `agent_start` BEFORE calling `fn(state, config)`. When `judge_with_hitl` calls `interrupt()`, the node pauses mid-execution. On resume, LangGraph re-executes the entire node from the top — including the `audit_node` wrapper — so `agent_start` is logged twice (2× `agent_start` + 1× `agent_end` for judge on HITL runs). Violates the research principle "no side effects before interrupt()". Does not affect the 6 other agents (none call `interrupt()`). Does not affect normal runs where conviction ≥ 0.5. Fix in Phase 3 when real judge agent is implemented — proper fix may distinguish "first execution" vs "resumed execution" in audit records.
+
 **Future considerations:**
 - Google AI rate limits (1500 req/day) — monitor in Phase 3, have OpenAI backup
-- yfinance reliability — implement caching strategy in Phase 2
+- yfinance reliability — implement caching strategy in Phase 2 (TTLCache ready)
 - RAG quality — RAGAs evaluation in Phase 3, iterate if faithfulness <90%
 - Phase 3 duration (6 weeks) — longest phase, break into sub-phases if needed
 
@@ -94,15 +103,16 @@
 
 ## Session Continuity
 
-**Last session:** 2026-02-21
-**Activity:** Executed all 3 Phase 1 plans, passed verification 13/13
-**Stopped at:** Phase 1 complete, ready for Phase 2 planning
+**Last session:** 2026-02-22
+**Activity:** Executed Phase 2 plan 02-01 — types, protocols, exceptions, TTL cache
+**Stopped at:** Completed 02-01-PLAN.md (2/2 tasks, 2 commits)
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Run `/gsd:plan-phase 2` to plan the Data Layer phase
-3. Reference `.planning/phases/01-foundation/` for patterns established (audit_node, agent_overrides, postgres_checkpointer)
+2. Execute 02-02: YFinanceSource (`get_fundamentals`, point-in-time, TTLCache)
+3. Reference `src/lockin/data/protocols.py` for interface to implement
+4. Reference `src/lockin/data/cache.py` for TTLCache usage
 
 ---
 
@@ -127,8 +137,9 @@
 - ✓ 6 passing E2E tests (MemorySaver, all CORE-01..04)
 
 ### Phase 2 - Data Layer
-**Status:** Not Started
+**Status:** In Progress (1/4 plans complete)
 **Dependencies:** Phase 1 complete ✓
+**Plan 02-01:** Complete ✓ — types.py, exceptions.py, protocols.py, cache.py
 
 ### Phase 3 - Agents & RAG
 **Status:** Not Started
@@ -151,7 +162,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 2f26adf — docs(01-03): complete HITL + checkpointing + E2E tests plan
+**Last commit:** e32baa5 — feat(02-01): create TTL cache with stale fallback
 
 ---
 
@@ -160,18 +171,24 @@
 **Commands:**
 - Resume work: `/gsd:resume-work`
 - Check progress: `/gsd:progress`
-- Plan next phase: `/gsd:plan-phase 2`
-- Execute next phase: `/gsd:execute-phase 2` (after planning)
+- Execute next plan: `/gsd:execute-phase 2` (plan 02-02)
 
 **Key Files:**
 - Architecture: `.planning/PROJECT.md`
 - Requirements: `.planning/REQUIREMENTS.md`
 - Roadmap: `.planning/ROADMAP.md`
 - Phase 1 patterns: `.planning/phases/01-foundation/`
+- Phase 2 foundation: `src/lockin/data/types.py`, `src/lockin/data/protocols.py`, `src/lockin/data/cache.py`
+
+**Data Layer Contracts (02-01):**
+- Types: `from lockin.data.types import FundamentalsResult, MacroResult, ValidationResult, REQUIRED_FUNDAMENTAL_FIELDS`
+- Protocols: `from lockin.data.protocols import DataSourceProtocol, MacroSourceProtocol`
+- Exceptions: `from lockin.data.exceptions import DataUnavailableError, LookAheadError`
+- Cache: `from lockin.data.cache import TTLCache, TTL_FUNDAMENTALS, TTL_MACRO`
 
 **Timeline:**
 - Week 0-2: Phase 1 (Foundation) ✓
-- Week 2-4: Phase 2 (Data Layer) ← next
+- Week 2-4: Phase 2 (Data Layer) ← in progress
 - Week 4-10: Phase 3 (Agents + RAG)
 - Week 10-12: Phase 4 (Integration)
 - Week 12-15: Phase 5 (Validation)
@@ -181,4 +198,4 @@
 ---
 
 *State initialized: 2026-02-08*
-*Last updated: 2026-02-21 after Phase 1 completion (verified 13/13)*
+*Last updated: 2026-02-22 after Phase 2 plan 02-01 completion*
