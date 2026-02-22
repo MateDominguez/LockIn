@@ -74,6 +74,14 @@ Plans:
 
 **Goal:** Build reliable financial data pipeline with yfinance + FRED, validation, point-in-time wrapper, and historical storage.
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Types, exceptions, protocols, and TTL cache
+- [ ] 02-02-PLAN.md — YFinanceSource and FREDSource implementations
+- [ ] 02-03-PLAN.md — DataValidator, storage functions, and DB setup script
+- [ ] 02-04-PLAN.md — PointInTimeData wrapper and public API
+
 **Success Criteria:**
 - [ ] yfinance integration retrieves fundamentals (10-K data: balance, income, cash flow)
 - [ ] FRED integration retrieves macro data (yield curve, GDP, inflation, PMI)
