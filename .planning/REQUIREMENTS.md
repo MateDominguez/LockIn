@@ -644,14 +644,14 @@ Sistema multi-agente de inversión basado en Value Investing híbrido (Graham ×
 
 ## Requirements Traceability
 
-| Phase | Requirements Covered | Total Count |
-|-------|---------------------|-------------|
-| **Phase 1: Foundation** | CORE-01, CORE-02, CORE-03, CORE-04 | 4 |
-| **Phase 2: Data Layer** | DATA-01, DATA-02, DATA-03, DATA-04, DATA-05 | 5 |
-| **Phase 3: Agents & RAG** | AGENTS-01 through AGENTS-05, RAG-01 through RAG-04 | 9 |
-| **Phase 4: Orchestration** | AGENTS-06, AGENTS-07, RISK-01, RISK-02, RISK-03 | 5 |
-| **Phase 5: Validation & Execution** | AGENTS-08, BACKTEST-01 through BACKTEST-04, PAPER-01 through PAPER-04, RISK-04 | 10 |
-| **Phase 6: Interface** | UI-01, UI-02, UI-03, UI-05, UI-06 | 5 |
+| Phase | Requirements Covered | Total Count | Status |
+|-------|---------------------|-------------|--------|
+| **Phase 1: Foundation** | CORE-01, CORE-02, CORE-03, CORE-04 | 4 | Complete |
+| **Phase 2: Data Layer** | DATA-01, DATA-02, DATA-03, DATA-04, DATA-05 | 5 | Pending |
+| **Phase 3: Agents & RAG** | AGENTS-01 through AGENTS-05, RAG-01 through RAG-04 | 9 | Pending |
+| **Phase 4: Orchestration** | AGENTS-06, AGENTS-07, RISK-01, RISK-02, RISK-03 | 5 | Pending |
+| **Phase 5: Validation & Execution** | AGENTS-08, BACKTEST-01 through BACKTEST-04, PAPER-01 through PAPER-04, RISK-04 | 10 | Pending |
+| **Phase 6: Interface** | UI-01, UI-02, UI-03, UI-05, UI-06 | 5 | Pending |
 
 **Total v1 Requirements:** 38
 
