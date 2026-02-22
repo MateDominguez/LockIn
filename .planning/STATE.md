@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-02-22
 **Current Phase:** Phase 2 - Data Layer (In progress)
-**Status:** Phase 2 plans 02-01 and 02-03 complete — foundational types + validation + storage
+**Status:** Phase 2 plans 02-01, 02-02, and 02-03 complete — types/protocols + data sources + validator/storage
 
 ---
 
@@ -18,13 +18,13 @@
 
 ## Current Position
 
-**Phase:** 2 of 6 (In progress — 2/4 plans complete)
-**Progress:** █████████░ 22% (Phase 1 complete + 2 plans in Phase 2)
+**Phase:** 2 of 6 (In progress — 3/4 plans complete)
+**Progress:** ██████████░ 25% (Phase 1 complete + 3 plans in Phase 2)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
-  Phase 2 - Data Layer    [████░░░░░░]  50%  (2/4 plans: 02-01, 02-03 complete)
+  Phase 2 - Data Layer    [██████░░░░]  75%  (3/4 plans: 02-01, 02-02, 02-03 complete)
   Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
@@ -34,6 +34,14 @@
 ---
 
 ## Recent Decisions
+
+**Plan 02-02 Implementation (2026-02-22):**
+- Cache raw DataFrames (not FundamentalsResult) so point-in-time filtering applies post-cache for any requested date
+- Store fetched_at in raw cache dict so cached results preserve the original fetch timestamp (enables cache hit detection)
+- yfinance field names are multi-word labels ("Total Revenue", not "TotalRevenue") — verified live against AAPL before coding
+- NAPM series unavailable on FRED — manufacturing_pmi returns None gracefully (series deleted from public FRED)
+- get_series_as_of_date() returns DataFrame with [realtime_start, date, value] columns (not a Series)
+- fiscal_year_end taken from income_stmt.columns[0] after PIT filter; balance_sheet used as fallback
 
 **Plan 02-03 Implementation (2026-02-22):**
 - Sentinel thread_id "data_validation" used in audit logs from DataValidator — validator has no LangGraph thread context; static string identifies the source clearly
@@ -86,10 +94,9 @@
 
 ### Phase 2 - Data Layer (In Progress)
 - [x] 02-01: Types, protocols, exceptions, TTL cache (DONE)
-- [ ] 02-02: YFinanceSource — implements DataSourceProtocol
+- [x] 02-02: YFinanceSource + FREDSource — implement DataSourceProtocol + MacroSourceProtocol (DONE)
 - [x] 02-03: DataValidator + storage functions + DB setup script (DONE)
-- [ ] 02-04: FREDSource — implements MacroSourceProtocol
-- [ ] 02-05: (remaining data layer work)
+- [ ] 02-04: (remaining data layer work)
 
 ---
 
@@ -111,17 +118,14 @@
 ## Session Continuity
 
 **Last session:** 2026-02-22
-**Activity:** Executed Phase 2 plan 02-03 — DataValidator, storage functions, DB setup script
-**Stopped at:** Completed 02-03-PLAN.md (2/2 tasks, 2 commits)
+**Activity:** Executed Phase 2 plan 02-02 — YFinanceSource and FREDSource concrete data fetchers
+**Stopped at:** Completed 02-02-PLAN.md (2/2 tasks, 3 commits incl. bug fix)
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Execute 02-02: YFinanceSource (`get_fundamentals`, point-in-time, TTLCache)
-3. Execute 02-04: FREDSource — implements MacroSourceProtocol
-4. Reference `src/lockin/data/protocols.py` for interface to implement
-5. Reference `src/lockin/data/cache.py` for TTLCache usage
-6. After YFinanceSource: integrate with store_fundamentals and store_asset from storage.py
+2. Execute remaining Phase 2 plans (02-04 if any remain)
+3. YFinanceSource and FREDSource are ready in src/lockin/data/
 
 ---
 
@@ -146,9 +150,10 @@
 - ✓ 6 passing E2E tests (MemorySaver, all CORE-01..04)
 
 ### Phase 2 - Data Layer
-**Status:** In Progress (1/4 plans complete)
+**Status:** In Progress (3/4 plans complete)
 **Dependencies:** Phase 1 complete ✓
 **Plan 02-01:** Complete ✓ — types.py, exceptions.py, protocols.py, cache.py
+**Plan 02-02:** Complete ✓ — yfinance_source.py, fred_source.py
 **Plan 02-03:** Complete ✓ — validator.py, storage.py, scripts/setup_data_tables.py
 
 ### Phase 3 - Agents & RAG
@@ -172,7 +177,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 0e48e53 — feat(02-03): implement storage functions and data table setup script
+**Last commit:** 8095347 — fix(02-02): store fetched_at in raw cache dict for consistent cached timestamps
 
 ---
 
@@ -196,6 +201,10 @@
 - Exceptions: `from lockin.data.exceptions import DataUnavailableError, LookAheadError`
 - Cache: `from lockin.data.cache import TTLCache, TTL_FUNDAMENTALS, TTL_MACRO`
 
+**Data Layer Contracts (02-02):**
+- YFinance: `from lockin.data.yfinance_source import YFinanceSource`
+- FRED: `from lockin.data.fred_source import FREDSource, FRED_SERIES`
+
 **Data Layer Contracts (02-03):**
 - Validator: `from lockin.data.validator import DataValidator`
 - Storage: `from lockin.data.storage import store_fundamentals, store_macro_data, store_asset, FINANCIAL_FIELDS, FRED_SERIES_IDS`
@@ -213,4 +222,4 @@
 ---
 
 *State initialized: 2026-02-08*
-*Last updated: 2026-02-22 after Phase 2 plan 02-01 completion*
+*Last updated: 2026-02-22 after Phase 2 plan 02-02 completion*
