@@ -91,13 +91,29 @@ skipped: 0
   reason: "User reported: if NAPM is not supported anymore it should be deleted or at least note that is not supported"
   severity: minor
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "FRED_SERIES dict in fred_source.py contains 'manufacturing_pmi': 'NAPM' — NAPM series was deleted from public FRED, always fails silently. Field should be removed from FRED_SERIES, MacroResult TypedDict (types.py), and FRED_SERIES_IDS (storage.py)."
+  artifacts:
+    - path: "src/lockin/data/fred_source.py"
+      issue: "FRED_SERIES dict contains manufacturing_pmi: NAPM — known-dead series"
+    - path: "src/lockin/data/types.py"
+      issue: "MacroResult TypedDict has manufacturing_pmi field that will always be None"
+    - path: "src/lockin/data/storage.py"
+      issue: "FRED_SERIES_IDS duplicate has manufacturing_pmi: NAPM"
+  missing:
+    - "Remove manufacturing_pmi from FRED_SERIES in fred_source.py"
+    - "Remove manufacturing_pmi field from MacroResult TypedDict in types.py"
+    - "Remove manufacturing_pmi from FRED_SERIES_IDS in storage.py"
 
 - truth: "get_fundamentals() public API should return quality_score: 1.0 for AAPL (all required fields present)"
   status: failed
   reason: "User reported: quality_score is None instead of 1.0 — validation metadata not merged into result from public API"
   severity: major
   test: 8
-  artifacts: []
-  missing: []
+  root_cause: "__init__.py get_fundamentals() merge step (lines 187-188) only copies missing_fields and outlier_flags from ValidationResult into FundamentalsResult, but omits quality_score, hitl_required, and hitl_reason. quality_score is the primary output of DataValidator and must be merged."
+  artifacts:
+    - path: "src/lockin/data/__init__.py"
+      issue: "Line 187-188: merge step missing quality_score, hitl_required, hitl_reason from validation dict"
+  missing:
+    - "Add result['quality_score'] = validation.get('quality_score') to the merge step"
+    - "Add result['hitl_required'] = validation.get('hitl_required') to the merge step"
+    - "Add result['hitl_reason'] = validation.get('hitl_reason') to the merge step"
