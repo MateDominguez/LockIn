@@ -41,7 +41,6 @@ FRED_SERIES_IDS: dict[str, str] = {
     "yield_10y_2y": "T10Y2Y",
     "yield_10y_3m": "T10Y3M",
     "unemployment": "UNRATE",
-    "manufacturing_pmi": "NAPM",
 }
 
 # Financial fields from FundamentalsResult to persist.

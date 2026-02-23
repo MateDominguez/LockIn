@@ -47,10 +47,6 @@ FRED_SERIES: dict[str, str] = {
     "yield_10y_2y": "T10Y2Y",
     "yield_10y_3m": "T10Y3M",
     "unemployment": "UNRATE",
-    # ISM Manufacturing PMI — NAPM historical series.
-    # If NAPM fetch fails at runtime, manufacturing_pmi is set to None
-    # (partial-data fallback) rather than blocking the whole macro fetch.
-    "manufacturing_pmi": "NAPM",
 }
 
 
@@ -175,7 +171,7 @@ class FREDSource:
         Returns
         -------
         MacroResult
-            TypedDict with 8 FRED indicators and metadata.
+            TypedDict with 7 FRED indicators and metadata.
 
         Raises
         ------
@@ -225,7 +221,6 @@ class FREDSource:
             "yield_10y_2y": indicators.get("yield_10y_2y"),
             "yield_10y_3m": indicators.get("yield_10y_3m"),
             "unemployment": indicators.get("unemployment"),
-            "manufacturing_pmi": indicators.get("manufacturing_pmi"),
             "source": "fred",
             "fetched_at": datetime.now(timezone.utc),
             "as_of_date": as_of_date.isoformat() if as_of_date else "live",
