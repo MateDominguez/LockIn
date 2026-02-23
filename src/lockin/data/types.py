@@ -47,9 +47,14 @@ class FundamentalsResult(TypedDict, total=False):
     source: str
     fetched_at: datetime
     as_of_date: str          # ISO date string (e.g. "2024-01-15") or "live"
+    data_freshness: str      # "FRESH" | "STALE"
+
+    # Validation metadata (merged in by get_fundamentals() public API)
+    quality_score: float     # 0.0 – 1.0 fraction of required fields present
     missing_fields: list[str]
     outlier_flags: dict[str, bool]
-    data_freshness: str      # "FRESH" | "STALE"
+    hitl_required: bool
+    hitl_reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +70,6 @@ class MacroResult(TypedDict, total=False):
     yield_10y_2y: float | None    # 10Y minus 2Y spread (basis points)
     yield_10y_3m: float | None    # 10Y minus 3M spread (basis points)
     unemployment: float | None
-    manufacturing_pmi: float | None
 
     # Metadata
     source: str

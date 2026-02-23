@@ -184,8 +184,11 @@ def get_fundamentals(
     validation: ValidationResult = _get_validator().validate_fundamentals(result)
 
     # Step 3: merge validation metadata into result
-    result["missing_fields"] = validation["missing_fields"]  # type: ignore[typeddict-unknown-key]
-    result["outlier_flags"] = validation["outlier_flags"]    # type: ignore[typeddict-unknown-key]
+    result["quality_score"] = validation.get("quality_score", 0.0)
+    result["missing_fields"] = validation.get("missing_fields", [])
+    result["outlier_flags"] = validation.get("outlier_flags", {})
+    result["hitl_required"] = validation.get("hitl_required", False)
+    result["hitl_reason"] = validation.get("hitl_reason", "")
 
     # Step 4: lazy storage (non-fatal)
     if store:
