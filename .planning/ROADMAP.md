@@ -125,6 +125,21 @@ Plans:
 
 **Goal:** Implement all 7 agents with dialectical Bull-Bear iteration, simplified VeTO, risk logic, and RAG over financial bibliography.
 
+**Plans:** 11 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Shared infra: LLM factory, agent base utilities, deps, Settings update
+- [ ] 03-02-PLAN.md — Macro Oracle agent (FRED regime detection)
+- [ ] 03-03-PLAN.md — Value Hunter (Bull) agent + valuation models (EPV/EVA/RIM, TDD)
+- [ ] 03-04-PLAN.md — Strategist agent (simplified VeTO, FMP earnings)
+- [ ] 03-05-PLAN.md — Bear agent (independent adversarial analysis)
+- [ ] 03-06-PLAN.md — Guardian agent (Z-Score, M-Score, VoMC, veto logic, TDD)
+- [ ] 03-07-PLAN.md — RAG infrastructure (ingestion, retriever, pgvector)
+- [ ] 03-08-PLAN.md — Judge agent (Bayesian synthesis, HITL, RAG citations)
+- [ ] 03-09-PLAN.md — Optimizer agent (Kelly Criterion, position sizing)
+- [ ] 03-10-PLAN.md — Graph wiring (replace mocks) + E2E pipeline tests
+- [ ] 03-11-PLAN.md — RAGAs evaluation suite + human verification
+
 **Success Criteria:**
 - [ ] **Macro Oracle** detects regime (expansion/contraction, risk-on/off) from FRED
 - [ ] **Value Hunter (Bull)** calculates intrinsic value with EPV (mature), EVA (tech), RIM (financials)
@@ -165,7 +180,7 @@ Plans:
 ```python
 # Bear: Adversarial analysis, red flag detection, pessimistic distribution
 # Bull-Bear iteration logic with state updates
-# RAG setup: Pinecone/ChromaDB, document ingestion pipeline
+# RAG setup: Supabase pgvector, document ingestion pipeline
 # Parent Document Retriever (retrieve chunk + surrounding context)
 # Citation system (source_id, section, timestamp, checksum)
 ```
@@ -181,14 +196,15 @@ Plans:
 ```
 
 **Dependencies:**
-- OpenAI/Google AI API for LLM calls (Gemini free tier 1500/day)
-- Vector DB setup (Pinecone free tier or ChromaDB local)
+- Google AI API for LLM calls (Gemini free tier 10 RPM / 250 RPD)
+- Supabase pgvector for RAG embeddings
+- FMP API for earnings transcripts (250 req/day free)
 - Financial bibliography PDFs/papers for RAG
 
 **Risks:**
-- LLM rate limits (mitigation: use Gemini free tier, fallback to OpenAI if needed)
+- LLM rate limits (mitigation: use Gemini free tier, test agents individually)
 - RAG quality issues (mitigation: RAGAs evaluation catches low faithfulness)
-- VoMC complexity (mitigation: simplified operational fragility calculation for v1)
+- VoMC complexity (mitigation: simplified realized volatility + sigmoid normalization)
 
 ---
 
