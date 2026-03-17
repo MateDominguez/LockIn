@@ -163,14 +163,15 @@
 ## Session Continuity
 
 **Last session:** 2026-03-17
-**Activity:** Executed Phase 3 plan 03-05 — Bear adversarial agent (independent pessimistic EPV, log-normal ValueDistribution, 10 unit tests).
-**Stopped at:** Completed 03-05-PLAN.md (2/2 tasks, 2 commits). Phase 3 plan 2 of 11 done.
+**Activity:** Executed Phase 3 plan 03-02 — Macro Oracle agent (FRED regime detection, ConfidenceModifier output, 6 unit tests).
+**Stopped at:** Completed 03-02-PLAN.md (2/2 tasks verified). Phase 3 plan 3 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Continue with remaining Phase 3 plans (03-02 Macro Oracle, 03-03 Value Hunter, 03-06 Strategist, etc.)
-3. Bear ready: `from lockin.agents.bear import bear` — outputs ValueDistribution + increments bull_iteration
+2. Continue with remaining Phase 3 plans (03-03 Value Hunter, 03-04 Strategist/Bear ordering, 03-06 Guardian, etc.)
+3. Macro Oracle ready: `from lockin.agents.macro_oracle import macro_oracle` — outputs oracle_modifier (ConfidenceModifier)
+4. Bear ready: `from lockin.agents.bear import bear` — outputs ValueDistribution + increments bull_iteration
 
 ---
 
@@ -204,9 +205,10 @@
 **Plan 02-04:** Complete ✓ — point_in_time.py, __init__.py (public API), tests/integration/test_data_pipeline.py (15 tests)
 
 ### Phase 3 - Agents & RAG
-**Status:** In Progress (1/11 plans complete)
+**Status:** In Progress (3/11 plans complete)
 **Dependencies:** Phase 1, 2 complete
 **Plan 03-01:** Complete ✓ — shared infra: LLM factory, typed dataclasses, Settings, InvestmentState typed fields
+**Plan 03-02:** Complete ✓ — Macro Oracle agent: FRED regime detection, ConfidenceModifier (circuit_breaker=False), macro_base_rate signal, 6 unit tests
 **Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, log-normal ValueDistribution (sigma=0.25), 5 red-flag signals, 10 unit tests
 
 ### Phase 4 - Integration
@@ -226,7 +228,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** d92e63d — feat(03-05): unit tests for Bear agent — 10 tests all passing
+**Last commit:** e826684 — test(03-06): add failing tests for risk score formulas (RED phase)
 
 ---
 
