@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-03-17
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 3/11 plans done)
-**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-05 done)
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 5/11 plans done)
+**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-05, 03-07 done)
 
 ---
 
@@ -19,13 +19,13 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
-**Progress:** █████████████░ 38% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-05 done)
+**Progress:** █████████████░ 42% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-03, 03-05, 03-07 done)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [███░░░░░░░]  27%  (3/11 plans: 03-01, 03-02, 03-05 done)
+  Phase 3 - Agents + RAG  [█████░░░░░]  45%  (5/11 plans: 03-01, 03-02, 03-03, 03-05, 03-07 done)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -34,6 +34,21 @@
 ---
 
 ## Recent Decisions
+
+**Plan 03-04 Implementation (2026-03-17):**
+- VeTO signal: `has_base_rate=False` — informational only in Phase 3, no empirical validation; does NOT adjust probability. Only adjusts `variance_adjustment += 0.10` when `veto_score < 0.4`.
+- VeTO does NOT adjust `margin_adjustment` — deferred to Phase 4 per CONTEXT.md. Strategist code documents this explicitly with inline comment.
+- `analyst_momentum` signal: `has_base_rate=True`, `base_rate_source="Jegadeesh (2004)"` — academic support for revision momentum; adjusts `margin_adjustment += 0.05` ONLY for net analyst downgrades.
+- `circuit_breaker` always False — Guardian is the circuit-breaker agent; Strategist is a Modifier, never vetoes investment.
+- Module-level `_TRANSCRIPT_CACHE: dict[str, str]` for FMP API — free tier 250 req/day; cache per ticker avoids redundant calls.
+- LLM JSON parsing strips markdown code blocks + fills defaults on failure — ensures agent never crashes even with malformed LLM response.
+
+**Plan 03-03 Implementation (2026-03-17):**
+- Valuation model selection heuristic: financial/tech -> RIM; mature -> EVA; default -> EPV — routes to best model for company type
+- Log-normal sigma adjusted by Piotroski F-Score: F>=7 -> sigma*0.85 (narrow); F<=3 -> sigma*1.20 (wide); else DEFAULT_SIGMA=0.20
+- Piotroski prior-year approximation: scale current-year metrics by 0.90 as synthetic prior; flagged in quality_metrics.synthetic_prior=True
+- Shares outstanding derived from net_income / diluted_eps — FundamentalsResult lacks direct shares_outstanding field
+- TDD cycle: 4 atomic commits (RED test, GREEN impl, RED test, GREEN impl); 33 total tests (21 formula + 12 agent), all passing
 
 **Plan 03-02 Implementation (2026-03-17):**
 - MODEL_FLASH for Macro Oracle — structured quantitative task; PRO quota reserved for Value Hunter, Bear, Judge (per 03-CONTEXT.md)
@@ -132,11 +147,11 @@
 ### Phase 3 - Agents + RAG (In Progress)
 - [x] 03-01: Shared agent infrastructure — LLM factory, typed dataclasses, Settings update, InvestmentState typed fields (DONE)
 - [x] 03-02: Macro Oracle agent — deterministic+LLM regime detection, ConfidenceModifier output, FRED fallback (DONE)
-- [ ] 03-03: Value Hunter agent
-- [ ] 03-04: Bear agent (see note — 03-05 implemented first per plan ordering)
+- [x] 03-03: Value Hunter agent — EPV/EVA/RIM + log-normal ValueDistribution + LLM thesis (DONE)
+- [x] 03-04: Strategist agent — ConfidenceModifier with VeTO (variance only, has_base_rate=False) + analyst momentum (Jegadeesh 2004), 8 unit tests (DONE)
 - [x] 03-05: Bear adversarial agent — independent pessimistic EPV + ValueDistribution (DONE)
-- [ ] 03-06: Strategist agent
-- [ ] 03-07: Guardian agent
+- [ ] 03-06: Guardian agent
+- [ ] 03-07: Judge agent
 - [ ] 03-08: Judge agent
 - [ ] 03-09: Optimizer agent
 - [ ] 03-10: RAG ingestion pipeline
@@ -163,13 +178,14 @@
 ## Session Continuity
 
 **Last session:** 2026-03-17
-**Activity:** Executed Phase 3 plan 03-02 — Macro Oracle agent (FRED regime detection, ConfidenceModifier output, 6 unit tests).
-**Stopped at:** Completed 03-02-PLAN.md (2/2 tasks verified). Phase 3 plan 3 of 11 done.
+**Activity:** Executed Phase 3 plan 03-03 — Value Hunter (Bull) agent (EPV/EVA/RIM + log-normal ValueDistribution + LLM thesis, 33 TDD unit tests).
+**Stopped at:** Completed 03-03-PLAN.md (2/2 tasks, 4 commits). Phase 3 plan 4 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Continue with remaining Phase 3 plans (03-03 Value Hunter, 03-04 Strategist/Bear ordering, 03-06 Guardian, etc.)
+2. Continue with Phase 3 plan 03-04 (Bear agent — review alignment with 03-05 already done)
+3. Value Hunter ready: `from lockin.agents.value_hunter import value_hunter`
 3. Macro Oracle ready: `from lockin.agents.macro_oracle import macro_oracle` — outputs oracle_modifier (ConfidenceModifier)
 4. Bear ready: `from lockin.agents.bear import bear` — outputs ValueDistribution + increments bull_iteration
 
