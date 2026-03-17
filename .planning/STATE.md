@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
-**Last Updated:** 2026-02-22
-**Current Phase:** Phase 3 - Agents + RAG (Not Started)
-**Status:** Phase 2 complete — all 4 plans executed (types/protocols + data sources + validator/storage + public API + integration tests)
+**Last Updated:** 2026-03-17
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 1/11 plans done)
+**Status:** Phase 2 complete — Phase 3 started (03-01 done) (types/protocols + data sources + validator/storage + public API + integration tests)
 
 ---
 
@@ -12,20 +12,20 @@
 
 **Core Value:** Transparencia total mediante arquitectura "caja de cristal" — cada decisión trazable, explicable, auditable.
 
-**Current Focus:** Phase 2 Data Layer — executing plans 02-01 through 02-05.
+**Current Focus:** Phase 3 Agents + RAG — executing plans 03-01 through 03-11.
 
 ---
 
 ## Current Position
 
-**Phase:** 3 of 6 (Phase 2 complete — moving to Phase 3)
-**Progress:** ████████████░ 33% (Phase 1 + Phase 2 complete)
+**Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
+**Progress:** █████████████░ 36% (Phase 1 + Phase 2 complete + 03-01 done)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [░░░░░░░░░░]   0%
+  Phase 3 - Agents + RAG  [█░░░░░░░░░]   9%  (1/11 plans: 03-01 done)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -34,6 +34,12 @@
 ---
 
 ## Recent Decisions
+
+**Plan 03-01 Implementation (2026-03-17):**
+- Lazy `__getattr__` in `lockin.graph.__init__` and `lockin.agents.__init__` — breaks circular dependency between mock agents, graph state, and agent types
+- Runtime imports (not TYPE_CHECKING) required for agent type annotations in `InvestmentState` — LangGraph calls `get_type_hints()` at StateGraph construction which cannot resolve forward references
+- `lockin.agents.types` eagerly imported in `agents/__init__` (no graph deps); mock/llm/base imports deferred — allows `state.py` to safely `from lockin.agents.types import ...`
+- BASE_RATE_TABLE values all `success_rate: None` — Phase 5 Validation will backfill empirical rates; academic defaults from published papers used as placeholders
 
 **Plan 02-02 Implementation (2026-02-22):**
 - Cache raw DataFrames (not FundamentalsResult) so point-in-time filtering applies post-cache for any requested date
@@ -108,8 +114,18 @@
 - [x] 02-03: DataValidator + storage functions + DB setup script (DONE)
 - [x] 02-04: PointInTimeData wrapper + public API + integration tests (DONE)
 
-### Phase 3 - Agents + RAG (Up Next)
-- [ ] 03-01: (pending planning)
+### Phase 3 - Agents + RAG (In Progress)
+- [x] 03-01: Shared agent infrastructure — LLM factory, typed dataclasses, Settings update, InvestmentState typed fields (DONE)
+- [ ] 03-02: Macro Oracle agent
+- [ ] 03-03: Value Hunter agent
+- [ ] 03-04: Bear agent
+- [ ] 03-05: Strategist agent
+- [ ] 03-06: Guardian agent
+- [ ] 03-07: Judge agent
+- [ ] 03-08: Optimizer agent
+- [ ] 03-09: RAG ingestion pipeline
+- [ ] 03-10: RAG retrieval integration
+- [ ] 03-11: Phase 3 integration tests
 
 ---
 
@@ -130,15 +146,15 @@
 
 ## Session Continuity
 
-**Last session:** 2026-02-22
-**Activity:** Executed Phase 2 plan 02-04 — PointInTimeData wrapper + public API + integration tests. Phase 2 COMPLETE.
-**Stopped at:** Completed 02-04-PLAN.md (3/3 tasks, 3 commits). Phase 2 all 4 plans done.
+**Last session:** 2026-03-17
+**Activity:** Executed Phase 3 plan 03-01 — shared agent infrastructure (LLM factory, typed dataclasses, Settings, InvestmentState typed fields).
+**Stopped at:** Completed 03-01-PLAN.md (3/3 tasks, 3 commits). Phase 3 plan 1 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Begin Phase 3 planning (Agents + RAG)
-3. Data layer public API ready: from lockin.data import get_fundamentals, get_macro_indicators
+2. Begin Phase 3 plan 03-02 (Macro Oracle agent)
+3. Agent infrastructure ready: from lockin.agents import get_llm, invoke_agent, BASE_RATE_TABLE, ConfidenceModifier
 
 ---
 
@@ -172,8 +188,9 @@
 **Plan 02-04:** Complete ✓ — point_in_time.py, __init__.py (public API), tests/integration/test_data_pipeline.py (15 tests)
 
 ### Phase 3 - Agents & RAG
-**Status:** Not Started
+**Status:** In Progress (1/11 plans complete)
 **Dependencies:** Phase 1, 2 complete
+**Plan 03-01:** Complete ✓ — shared infra: LLM factory, typed dataclasses, Settings, InvestmentState typed fields
 
 ### Phase 4 - Integration
 **Status:** Not Started
@@ -192,7 +209,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 8095347 — fix(02-02): store fetched_at in raw cache dict for consistent cached timestamps
+**Last commit:** d31d84e — feat(03-01): update InvestmentState with typed agent output fields
 
 ---
 
