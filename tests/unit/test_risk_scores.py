@@ -318,15 +318,18 @@ class TestVomcFragility:
         )
 
     def test_vomc_high_vol(self):
-        """High daily volatility (~4% daily = ~63% annualized) -> fragility > 0.7."""
-        import random
-        random.seed(42)
-        # std ~0.04 daily = ~0.635 annualized (well above 0.3 threshold)
-        returns = [0.04 * (2 * random.random() - 1) for _ in range(252)]
+        """High daily volatility (std=0.04 daily = ~63% annualized) -> fragility > 0.7.
+
+        Uses alternating +0.04/-0.04 returns to get exact std=0.04 (deterministic).
+        ann_vol = 0.04 * sqrt(252) ≈ 0.635, well above the 0.3 sigmoid center.
+        Expected fragility ≈ 0.966 (strongly fragile).
+        """
+        # Alternating ±0.04 gives pstdev = 0.04 exactly
+        returns = [0.04 if i % 2 == 0 else -0.04 for i in range(252)]
         result = vomc_fragility(returns)
         assert isinstance(result, float)
         assert result > 0.7, (
-            f"Expected fragility > 0.7 for high-vol stock, got {result:.4f}"
+            f"Expected fragility > 0.7 for high-vol stock (ann_vol~63%), got {result:.4f}"
         )
 
     def test_vomc_empty_returns_returns_half(self):
