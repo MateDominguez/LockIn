@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-03-17
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 1/11 plans done)
-**Status:** Phase 2 complete — Phase 3 started (03-01 done) (types/protocols + data sources + validator/storage + public API + integration tests)
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 3/11 plans done)
+**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-05 done)
 
 ---
 
@@ -19,13 +19,13 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
-**Progress:** █████████████░ 36% (Phase 1 + Phase 2 complete + 03-01 done)
+**Progress:** █████████████░ 38% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-05 done)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [█░░░░░░░░░]   9%  (1/11 plans: 03-01 done)
+  Phase 3 - Agents + RAG  [███░░░░░░░]  27%  (3/11 plans: 03-01, 03-02, 03-05 done)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -34,6 +34,21 @@
 ---
 
 ## Recent Decisions
+
+**Plan 03-02 Implementation (2026-03-17):**
+- MODEL_FLASH for Macro Oracle — structured quantitative task; PRO quota reserved for Value Hunter, Bear, Judge (per 03-CONTEXT.md)
+- Deterministic overrides LLM for yield_curve and fed_stance — inverted if yield_10y_2y<0 OR yield_10y_3m<0; hawkish if fed_funds>4.0; no judgment needed
+- margin_adjustment=+0.175 — midpoint of [+0.15, +0.20] spec range for extreme greed (expansion+risk_on+normal curve)
+- macro_confidence clamped to [0.3, 0.95] — 0.3 floor for minimal weight without FRED data; 0.95 cap prevents overconfidence
+- circuit_breaker always False for Oracle — Oracle adjusts trust, never blocks
+
+**Plan 03-05 Implementation (2026-03-17):**
+- Bear sigma=0.25 (fixed constant) — wider than Bull's ~0.20 to reflect greater uncertainty in bearish case; simple constant avoids instability on sparse fundamentals
+- EPV uses operating_income as EBIT proxy; fallback to net_income gross-up by (1-tax_rate) — always computable even with sparse data
+- DataCoverage.missing hardcoded to 3 structural unknowns (competitive_threat_detail, regulatory_risk, insider_sentiment) — cannot be derived from fundamentals alone
+- store=False in Bear's get_fundamentals call — Bear is read-only; Bull (Value Hunter) already stored the same fundamentals
+- LLM fallback: silent stderr + safe defaults — LLM failure must not crash the dialectic loop
+- Net-cash adjustment applied to NOPAT-based EPV: epv_equity = epv + cash - debt (standard EPV formula for equity value)
 
 **Plan 03-01 Implementation (2026-03-17):**
 - Lazy `__getattr__` in `lockin.graph.__init__` and `lockin.agents.__init__` — breaks circular dependency between mock agents, graph state, and agent types
@@ -116,16 +131,17 @@
 
 ### Phase 3 - Agents + RAG (In Progress)
 - [x] 03-01: Shared agent infrastructure — LLM factory, typed dataclasses, Settings update, InvestmentState typed fields (DONE)
-- [ ] 03-02: Macro Oracle agent
+- [x] 03-02: Macro Oracle agent — deterministic+LLM regime detection, ConfidenceModifier output, FRED fallback (DONE)
 - [ ] 03-03: Value Hunter agent
-- [ ] 03-04: Bear agent
-- [ ] 03-05: Strategist agent
-- [ ] 03-06: Guardian agent
-- [ ] 03-07: Judge agent
-- [ ] 03-08: Optimizer agent
-- [ ] 03-09: RAG ingestion pipeline
-- [ ] 03-10: RAG retrieval integration
-- [ ] 03-11: Phase 3 integration tests
+- [ ] 03-04: Bear agent (see note — 03-05 implemented first per plan ordering)
+- [x] 03-05: Bear adversarial agent — independent pessimistic EPV + ValueDistribution (DONE)
+- [ ] 03-06: Strategist agent
+- [ ] 03-07: Guardian agent
+- [ ] 03-08: Judge agent
+- [ ] 03-09: Optimizer agent
+- [ ] 03-10: RAG ingestion pipeline
+- [ ] 03-11: RAG retrieval integration
+- [ ] 03-12: Phase 3 integration tests
 
 ---
 
@@ -147,14 +163,14 @@
 ## Session Continuity
 
 **Last session:** 2026-03-17
-**Activity:** Executed Phase 3 plan 03-01 — shared agent infrastructure (LLM factory, typed dataclasses, Settings, InvestmentState typed fields).
-**Stopped at:** Completed 03-01-PLAN.md (3/3 tasks, 3 commits). Phase 3 plan 1 of 11 done.
+**Activity:** Executed Phase 3 plan 03-05 — Bear adversarial agent (independent pessimistic EPV, log-normal ValueDistribution, 10 unit tests).
+**Stopped at:** Completed 03-05-PLAN.md (2/2 tasks, 2 commits). Phase 3 plan 2 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Begin Phase 3 plan 03-02 (Macro Oracle agent)
-3. Agent infrastructure ready: from lockin.agents import get_llm, invoke_agent, BASE_RATE_TABLE, ConfidenceModifier
+2. Continue with remaining Phase 3 plans (03-02 Macro Oracle, 03-03 Value Hunter, 03-06 Strategist, etc.)
+3. Bear ready: `from lockin.agents.bear import bear` — outputs ValueDistribution + increments bull_iteration
 
 ---
 
@@ -191,6 +207,7 @@
 **Status:** In Progress (1/11 plans complete)
 **Dependencies:** Phase 1, 2 complete
 **Plan 03-01:** Complete ✓ — shared infra: LLM factory, typed dataclasses, Settings, InvestmentState typed fields
+**Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, log-normal ValueDistribution (sigma=0.25), 5 red-flag signals, 10 unit tests
 
 ### Phase 4 - Integration
 **Status:** Not Started
@@ -209,7 +226,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** d31d84e — feat(03-01): update InvestmentState with typed agent output fields
+**Last commit:** d92e63d — feat(03-05): unit tests for Bear agent — 10 tests all passing
 
 ---
 
