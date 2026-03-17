@@ -16,10 +16,14 @@ Graceful degradation when DATABASE_URL not configured.
 
 from __future__ import annotations
 
+import json
 import os
+import pathlib
 import uuid
 import logging
 from typing import Optional
+
+from pypdf import PdfReader
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +99,7 @@ def _upsert_document(
                 metadata = EXCLUDED.metadata
             RETURNING id
             """,
-            (source_type, source_id, title, __import__("json").dumps(meta)),
+            (source_type, source_id, title, json.dumps(meta)),
         )
         row = cur.fetchone()
     conn.commit()
@@ -116,8 +120,6 @@ def _store_chunks_and_embeddings(
 
     Deletes existing chunks for document_id first to ensure idempotency.
     """
-    import json
-
     meta = base_metadata or {}
 
     with conn.cursor() as cur:
@@ -214,8 +216,6 @@ def ingest_pdf(
         RuntimeError: If DATABASE_URL not configured.
         FileNotFoundError: If PDF file does not exist.
     """
-    import pathlib
-
     path = pathlib.Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"PDF not found: {file_path}")
@@ -224,8 +224,6 @@ def ingest_pdf(
     title = path.stem
 
     # Extract text from PDF
-    from pypdf import PdfReader
-
     reader = PdfReader(str(path))
     pages_text: list[str] = []
     for page_num, page in enumerate(reader.pages):
