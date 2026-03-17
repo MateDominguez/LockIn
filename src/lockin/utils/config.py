@@ -32,8 +32,19 @@ class Settings:
     supabase_key: str = ""
     google_api_key: str = ""
     fred_api_key: str = ""
+    fmp_api_key: str = ""
     env: str = "development"
     log_level: str = "INFO"
+
+    # Per-agent model selection — allows independent model tuning per agent.
+    # Defaults follow the spec: flash for lower-cost agents, pro for critical ones.
+    macro_oracle_model: str = "gemini-2.5-flash"
+    value_hunter_model: str = "gemini-2.5-pro"
+    strategist_model: str = "gemini-2.5-flash"
+    bear_model: str = "gemini-2.5-pro"
+    guardian_model: str = "gemini-2.5-flash"
+    judge_model: str = "gemini-2.5-pro"
+    optimizer_model: str = "gemini-2.5-flash"
 
 
 @lru_cache(maxsize=1)
@@ -45,6 +56,15 @@ def get_settings() -> Settings:
         supabase_key=os.getenv("SUPABASE_KEY", os.getenv("SUPABASE_ANON_KEY", "")),
         google_api_key=os.getenv("GOOGLE_API_KEY", ""),
         fred_api_key=os.getenv("FRED_API_KEY", ""),
+        fmp_api_key=os.getenv("FMP_API_KEY", ""),
         env=os.getenv("ENV", "development"),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
+        # Per-agent model fields
+        macro_oracle_model=os.getenv("MACRO_ORACLE_MODEL", "gemini-2.5-flash"),
+        value_hunter_model=os.getenv("VALUE_HUNTER_MODEL", "gemini-2.5-pro"),
+        strategist_model=os.getenv("STRATEGIST_MODEL", "gemini-2.5-flash"),
+        bear_model=os.getenv("BEAR_MODEL", "gemini-2.5-pro"),
+        guardian_model=os.getenv("GUARDIAN_MODEL", "gemini-2.5-flash"),
+        judge_model=os.getenv("JUDGE_MODEL", "gemini-2.5-pro"),
+        optimizer_model=os.getenv("OPTIMIZER_MODEL", "gemini-2.5-flash"),
     )
