@@ -19,6 +19,13 @@ Public API::
     results = evaluate_rag()
     print(results["faithfulness"])    # float 0-1 or None
     print(results["answer_relevancy"])
+
+Implementation notes:
+- retrieve_with_citations imported at module level (required for unittest.mock.patch
+  to work; lazy import inside function body is not patchable via module attribute).
+- ragas_evaluate imported at module level for the same reason.
+- datasets.Dataset imported at module level so tests can patch create_eval_dataset
+  without hitting HuggingFace network at import time.
 """
 
 from __future__ import annotations
@@ -28,6 +35,21 @@ import os
 import sys
 import warnings
 from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Module-level imports — required for unittest.mock.patch to work.
+# (patch() replaces the attribute on the module object at patch time;
+#  a lazy import inside the function body is not patchable as a module attr.)
+# ---------------------------------------------------------------------------
+from datasets import Dataset
+from ragas import evaluate as ragas_evaluate
+import warnings as _warnings
+
+with _warnings.catch_warnings():
+    _warnings.simplefilter("ignore", DeprecationWarning)
+    from ragas.metrics import answer_relevancy, faithfulness
+
+from lockin.rag.retriever import retrieve_with_citations
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +94,6 @@ def _check_rag_configured() -> bool:
 
 def _check_llm_configured() -> bool:
     """Return True if Google API key is available."""
-    # Check env directly first (avoids crashing on missing dotenv)
     if os.environ.get("GOOGLE_API_KEY"):
         return True
     try:
@@ -94,7 +115,6 @@ def _generate_answer(question: str, contexts: list[dict]) -> str:
     if not contexts:
         return ""
 
-    # Format context text from retrieved citation dicts
     context_text = "\n\n".join(c.get("content", "") for c in contexts if c.get("content"))
     if not context_text.strip():
         return ""
@@ -123,7 +143,7 @@ def _generate_answer(question: str, contexts: list[dict]) -> str:
 def create_eval_dataset(
     questions: list[str],
     ground_truths: list[str],
-):
+) -> Dataset:
     """
     Build a HuggingFace Dataset ready for RAGAs evaluation.
 
@@ -140,14 +160,7 @@ def create_eval_dataset(
 
     Returns:
         ``datasets.Dataset`` with 4 columns expected by ragas ``evaluate()``.
-
-    Raises:
-        ImportError: If the ``datasets`` package is not installed.
     """
-    from datasets import Dataset
-
-    from lockin.rag.retriever import retrieve_with_citations
-
     rows: dict[str, list] = {
         "question": [],
         "answer": [],
@@ -171,7 +184,7 @@ def create_eval_dataset(
 
 
 def evaluate_rag(
-    dataset=None,
+    dataset: Optional[Dataset] = None,
     questions: Optional[list[str]] = None,
     ground_truths: Optional[list[str]] = None,
 ) -> dict:
@@ -192,10 +205,10 @@ def evaluate_rag(
 
     Returns:
         dict with keys:
-        - ``"faithfulness"``    (float 0-1, or None on error)
+        - ``"faithfulness"``     (float 0-1, or None on error)
         - ``"answer_relevancy"`` (float 0-1, or None on error)
-        - ``"details"``         (list of per-row scores, empty on error)
-        - ``"error"``           (str, only present when evaluation failed)
+        - ``"details"``          (list of per-row scores, empty on error)
+        - ``"error"``            (str, only present when evaluation failed)
     """
     # ------------------------------------------------------------------
     # Graceful degradation when infrastructure not available
@@ -231,9 +244,6 @@ def evaluate_rag(
     # Run ragas evaluation
     # ------------------------------------------------------------------
     try:
-        from ragas import evaluate as ragas_evaluate
-        from ragas.metrics import answer_relevancy, faithfulness
-
         # Suppress deprecation warnings from ragas internals during evaluation
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
@@ -262,8 +272,12 @@ def evaluate_rag(
                 )
 
         output = {
-            "faithfulness": float(faithfulness_score) if faithfulness_score is not None else None,
-            "answer_relevancy": float(relevancy_score) if relevancy_score is not None else None,
+            "faithfulness": (
+                float(faithfulness_score) if faithfulness_score is not None else None
+            ),
+            "answer_relevancy": (
+                float(relevancy_score) if relevancy_score is not None else None
+            ),
             "details": details,
         }
 
