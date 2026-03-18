@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from lockin.agents.types import ConfidenceModifier, Signal
@@ -38,33 +39,44 @@ def _mock_ticker(
     revenue: float = 30_000_000_000,
     daily_returns: list[float] | None = None,
 ) -> MagicMock:
-    """Build a mock yf.Ticker object with controlled financial data."""
+    """Build a mock yf.Ticker object with controlled financial data.
+
+    Uses real pandas DataFrames so _safe_get() (which uses df.loc) works correctly.
+    """
     ticker = MagicMock()
 
     # info dict: market cap
     ticker.info = {"marketCap": market_cap}
 
-    # balance_sheet: DataFrame-like with get() interface
-    bs = MagicMock()
-    bs.get.side_effect = lambda key, default=None: {
-        "Net Receivables": 500_000_000,
-        "Net PPE": 3_000_000_000,
-        "Selling General Administrative": 1_000_000_000,
-        "Retained Earnings": retained_earnings,
-        "Current Assets": working_capital + 2_000_000_000,
-        "Current Liabilities": 2_000_000_000,
-        "Total Liabilities Net Minority Interest": total_liabilities,
-    }.get(key, default)
-    ticker.balance_sheet = bs
+    # balance_sheet: real DataFrame with rows = financial items, col = "2024"
+    bs_data = {
+        "2024": {
+            "Working Capital": working_capital,
+            "Retained Earnings": retained_earnings,
+            "Total Assets": total_assets,
+            "Total Liabilities Net Minority Interest": total_liabilities,
+            "Current Assets": working_capital + 2_000_000_000,
+            "Current Liabilities": 2_000_000_000,
+            "Net Receivables": 500_000_000,
+            "Receivables": 500_000_000,
+            "Net PPE": 3_000_000_000,
+            "Selling General And Administration": 1_000_000_000,
+            "Long Term Debt": total_liabilities * 0.7,
+        }
+    }
+    ticker.balance_sheet = pd.DataFrame(bs_data)
 
-    # financials (income statement)
-    fin = MagicMock()
-    fin.get.side_effect = lambda key, default=None: {
-        "Total Revenue": revenue,
-        "EBIT": ebit,
-        "Total Assets": total_assets,
-    }.get(key, default)
-    ticker.financials = fin
+    # financials: real DataFrame
+    fin_data = {
+        "2024": {
+            "Total Revenue": revenue,
+            "EBIT": ebit,
+            "Gross Profit": revenue * 0.40,
+            "Reconciled Depreciation": total_assets * 0.05,
+            "Net Income": ebit * 0.75,
+        }
+    }
+    ticker.financials = pd.DataFrame(fin_data)
 
     # history: returns DataFrame with 'Close' column for daily returns
     if daily_returns is None:
