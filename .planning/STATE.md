@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-03-18
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 10/11 plans done)
-**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-08, 03-09, 03-10 done)
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 03-11 auto tasks done, awaiting human checkpoint)
+**Status:** Phase 2 complete — Phase 3 in progress (03-01 through 03-11 auto tasks done; 03-11 checkpoint pending human verify)
 
 ---
 
@@ -18,15 +18,15 @@
 
 ## Current Position
 
-**Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
-**Progress:** █████████████████░ 62% (Phase 1 + Phase 2 complete + 03-01 through 03-10 done)
-Last activity: 2026-03-18 - Completed 03-10-PLAN.md
+**Phase:** 3 of 6 (Phase 3 — Agents + RAG, Awaiting human checkpoint)
+**Progress:** ██████████████████ 64% (Phase 1 + Phase 2 complete + 03-01 through 03-11 auto tasks done)
+Last activity: 2026-03-18 - Executed 03-11-PLAN.md (auto tasks); checkpoint pending human verify
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [█████████░]  91%  (10/11 plans: 03-01..03-10 done, 03-11 remaining)
+  Phase 3 - Agents + RAG  [██████████]  ~99%  (11/11 plans: 03-01..03-11 auto tasks done; 03-11 checkpoint pending)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -35,6 +35,12 @@ Last activity: 2026-03-18 - Completed 03-10-PLAN.md
 ---
 
 ## Recent Decisions
+
+**Plan 03-11 Implementation (2026-03-18):**
+- Module-level imports for retrieve_with_citations, ragas_evaluate, faithfulness, answer_relevancy in evaluation.py — unittest.mock.patch requires attribute to exist at module level; lazy import inside function body is not patchable (same fix as 03-07 PdfReader)
+- ragas 0.4.x singleton metric instances (from ragas.metrics import faithfulness) — simpler than ragas.metrics.collections which requires LLM arg in constructor; works correctly in 0.4.x
+- Graceful degradation returns error dict (not exception) when SUPABASE_URL/KEY absent — consistent with retrieve_with_citations returning [] on no config
+- EvaluationResult._repr_dict used for mean score extraction — only place ragas 0.4 exposes per-metric means as dict
 
 **Plan 03-10 Implementation (2026-03-18):**
 - Jaccard similarity on top-20 most frequent words with 0.85 threshold for argument exhaustion detection — simple, no NLP deps, reproducible; minor word additions (normal in one rebuttal) don't trigger early termination
@@ -191,7 +197,7 @@ Last activity: 2026-03-18 - Completed 03-10-PLAN.md
 - [x] 03-08: Judge agent — judge_math.py (7-step pure algorithm) + judge.py (LangGraph agent), 43 tests (DONE)
 - [x] 03-09: Optimizer agent (DONE)
 - [x] 03-10: Graph wiring + E2E tests — real agents in builder.py, argument exhaustion, 5 E2E tests (DONE)
-- [ ] 03-11: RAG retrieval integration
+- [~] 03-11: RAG retrieval integration (auto tasks done; checkpoint:human-verify pending)
 - [ ] 03-12: Phase 3 integration tests
 
 ---
@@ -214,17 +220,16 @@ Last activity: 2026-03-18 - Completed 03-10-PLAN.md
 ## Session Continuity
 
 **Last session:** 2026-03-18
-**Activity:** Executed Phase 3 plan 03-10 — Graph wiring + E2E tests (real agents in builder.py, argument exhaustion detection, 5 E2E pipeline tests).
-**Stopped at:** Completed 03-10-PLAN.md (2/2 tasks, 3 commits). Phase 3 plan 10 of 11 done.
+**Activity:** Executed Phase 3 plan 03-11 auto tasks — RAGAs evaluation module (evaluation.py) + 3 integration tests (test_ragas.py). Stopped at checkpoint:human-verify.
+**Stopped at:** 03-11-PLAN.md auto tasks done (2/2, 2 commits). Checkpoint pending human verification.
 **Resume file:** None
 
-**When resuming:**
+**When resuming (after checkpoint approval):**
 1. Review STATE.md (this file)
-2. Continue with Phase 3 plan 03-11 (RAG retrieval integration)
-3. Full pipeline wired: `from lockin.graph.builder import create_graph` uses all 7 real agents by default
-4. E2E test pattern established: see tests/e2e/test_full_pipeline.py for stub agent + autouse audit fixture pattern
-5. REAL_AGENTS registry: `from lockin.agents import REAL_AGENTS` — dict mapping names to all 7 callables
-6. Argument exhaustion: `from lockin.graph.builder import is_argument_exhausted` — Jaccard similarity (0.85 threshold)
+2. Phase 3 is complete after checkpoint is approved — proceed to Phase 4 Integration
+3. RAGAs evaluation: `from lockin.rag.evaluation import evaluate_rag` — runs faithfulness + answer_relevancy
+4. Full pipeline: `from lockin.graph.builder import create_graph` uses all 7 real agents by default
+5. RAG modules: `ls src/lockin/rag/` — ingestion.py, retriever.py, evaluation.py, __init__.py
 
 ---
 
@@ -265,6 +270,7 @@ Last activity: 2026-03-18 - Completed 03-10-PLAN.md
 **Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, log-normal ValueDistribution (sigma=0.25), 5 red-flag signals, 10 unit tests
 **Plan 03-08:** Complete ✓ — Judge agent: judge_math.py (7-step pure Bayesian algorithm, 35 tests) + judge.py (LangGraph agent, LLM narrative, HITL at p<0.40 or circuit_breaker, 8 tests)
 **Plan 03-10:** Complete ✓ — Graph wiring: real agents as defaults, is_argument_exhausted() Jaccard detection, guardian_modifier.circuit_breaker routing, 5 E2E tests
+**Plan 03-11:** Auto tasks complete ✓ (checkpoint pending) — RAGAs evaluation module: create_eval_dataset + evaluate_rag, graceful no-config degradation, 3 integration tests
 
 ### Phase 4 - Integration
 **Status:** Not Started
@@ -283,7 +289,7 @@ Last activity: 2026-03-18 - Completed 03-10-PLAN.md
 ## Git Status
 
 **Branch:** main
-**Last commit:** fee6866 — test(03-10): add E2E pipeline tests with mocked LLM and stub agents
+**Last commit:** 6d7186b — feat(03-11): add RAGAs integration tests + fix module-level imports
 
 ---
 
