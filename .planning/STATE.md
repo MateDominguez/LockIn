@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
-**Last Updated:** 2026-03-17
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 5/11 plans done)
-**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-05, 03-07 done)
+**Last Updated:** 2026-03-18
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 8/11 plans done)
+**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
 
 ---
 
@@ -19,13 +19,13 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
-**Progress:** █████████████░ 42% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-03, 03-05, 03-07 done)
+**Progress:** ███████████████░ 55% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [█████░░░░░]  45%  (5/11 plans: 03-01, 03-02, 03-03, 03-05, 03-07 done)
+  Phase 3 - Agents + RAG  [███████░░░]  73%  (8/11 plans: 03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -34,6 +34,23 @@
 ---
 
 ## Recent Decisions
+
+**Plan 03-09 Implementation (2026-03-18):**
+- KELLY_FRACTION = 0.33 (Kelly/3, NOT Kelly/4) — Notion spec explicitly specifies this; judge_math pre-applies the 1/3 fractional before writing kelly_fraction to JudgeOutput
+- MAX_POSITION_SIZE = 0.10 (10% hard cap), MAX_SECTOR_ALLOCATION = 0.325 (midpoint 30-35%), CIRCUIT_BREAKER_OVERRIDE_CAP = 0.02 — all constants from Notion spec
+- HOLD -> 0 new capital — HOLD means maintain existing position, not add new; only BUY triggers Kelly allocation
+- circuit_breaker_override caps at <=2% (applied after BUY sizing); circuit_breaker with no override -> hard 0
+- yfinance sector fetch is best-effort (try/except, defaults to "Unknown") — network failure must not crash deterministic position sizing
+- MODEL_FLASH for LLM narrative — prose summary does not need MODEL_PRO reasoning quality
+- position_cap_applied flag uses `kelly_fraction > MAX_POSITION_SIZE and position_size <= MAX_POSITION_SIZE` (precise check) vs plan's round() comparison (imprecise for floats)
+- 16 tests (vs 9 required minimum): added output structure, metrics sub-keys, and LLM fallback tests for full coverage
+
+**Plan 03-07 Implementation (2026-03-17):**
+- PdfReader imported at module level in ingestion.py — unittest.mock.patch requires attribute to exist on module object; lazy import inside function body is not patchable
+- ivfflat index with lists=100 on rag_documents embedding — standard Supabase pgvector pattern for cosine similarity; appropriate for expected document volume (<1M rows)
+- Idempotency via DELETE+INSERT for chunks (not per-chunk UPSERT) — chunk count/content can change on re-ingest; UPSERT on documents preserves UUID
+- Table name "rag_documents" throughout (not "embeddings") per plan IMPORTANT CONTEXT
+- match_documents RPC uses filter JSONB parameter for metadata filtering via SupabaseVectorStore
 
 **Plan 03-04 Implementation (2026-03-17):**
 - VeTO signal: `has_base_rate=False` — informational only in Phase 3, no empirical validation; does NOT adjust probability. Only adjusts `variance_adjustment += 0.10` when `veto_score < 0.4`.
@@ -150,10 +167,10 @@
 - [x] 03-03: Value Hunter agent — EPV/EVA/RIM + log-normal ValueDistribution + LLM thesis (DONE)
 - [x] 03-04: Strategist agent — ConfidenceModifier with VeTO (variance only, has_base_rate=False) + analyst momentum (Jegadeesh 2004), 8 unit tests (DONE)
 - [x] 03-05: Bear adversarial agent — independent pessimistic EPV + ValueDistribution (DONE)
-- [ ] 03-06: Guardian agent
-- [ ] 03-07: Judge agent
-- [ ] 03-08: Judge agent
-- [ ] 03-09: Optimizer agent
+- [x] 03-06: Guardian agent (DONE)
+- [x] 03-07: Judge agent (DONE)
+- [ ] 03-08: Judge math / judge_math.py
+- [x] 03-09: Optimizer agent (DONE)
 - [ ] 03-10: RAG ingestion pipeline
 - [ ] 03-11: RAG retrieval integration
 - [ ] 03-12: Phase 3 integration tests
@@ -177,17 +194,18 @@
 
 ## Session Continuity
 
-**Last session:** 2026-03-17
-**Activity:** Executed Phase 3 plan 03-03 — Value Hunter (Bull) agent (EPV/EVA/RIM + log-normal ValueDistribution + LLM thesis, 33 TDD unit tests).
-**Stopped at:** Completed 03-03-PLAN.md (2/2 tasks, 4 commits). Phase 3 plan 4 of 11 done.
+**Last session:** 2026-03-18
+**Activity:** Executed Phase 3 plan 03-09 — Optimizer agent (Kelly/3 sizing, 10% cap, CB override cap, 16 unit tests).
+**Stopped at:** Completed 03-09-PLAN.md (2/2 tasks, 2 commits). Phase 3 plan 8 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Continue with Phase 3 plan 03-04 (Bear agent — review alignment with 03-05 already done)
-3. Value Hunter ready: `from lockin.agents.value_hunter import value_hunter`
-3. Macro Oracle ready: `from lockin.agents.macro_oracle import macro_oracle` — outputs oracle_modifier (ConfidenceModifier)
-4. Bear ready: `from lockin.agents.bear import bear` — outputs ValueDistribution + increments bull_iteration
+2. Continue with Phase 3 plan 03-08 (Judge math — judge_math.py Bayesian synthesis formulas)
+3. Optimizer ready: `from lockin.agents.optimizer import optimizer, kelly_criterion`
+4. Guardian ready: `from lockin.agents.guardian import guardian`
+5. Judge ready: `from lockin.agents.judge import judge`
+6. Bear ready: `from lockin.agents.bear import bear`
 
 ---
 
@@ -244,7 +262,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** e826684 — test(03-06): add failing tests for risk score formulas (RED phase)
+**Last commit:** 7db01f8 — feat(03-09): add 16 unit tests for Optimizer (Kelly, caps, circuit breaker)
 
 ---
 
