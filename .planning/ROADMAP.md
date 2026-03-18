@@ -121,36 +121,39 @@ Plans:
 
 ---
 
-## Phase 3: Agents & RAG (6 weeks)
+## Phase 3: Agents & RAG (6 weeks) ✓ COMPLETE
 
 **Goal:** Implement all 7 agents with dialectical Bull-Bear iteration, simplified VeTO, risk logic, and RAG over financial bibliography.
+
+**Completed:** 2026-03-18
+**Verification:** 11/11 must-haves passed
 
 **Plans:** 11 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Shared infra: LLM factory, agent base utilities, deps, Settings update
-- [ ] 03-02-PLAN.md — Macro Oracle agent (FRED regime detection)
-- [ ] 03-03-PLAN.md — Value Hunter (Bull) agent + valuation models (EPV/EVA/RIM, TDD)
-- [ ] 03-04-PLAN.md — Strategist agent (simplified VeTO, FMP earnings)
-- [ ] 03-05-PLAN.md — Bear agent (independent adversarial analysis)
-- [ ] 03-06-PLAN.md — Guardian agent (Z-Score, M-Score, VoMC, veto logic, TDD)
-- [ ] 03-07-PLAN.md — RAG infrastructure (ingestion, retriever, pgvector)
-- [ ] 03-08-PLAN.md — Judge agent (Bayesian synthesis, HITL, RAG citations)
-- [ ] 03-09-PLAN.md — Optimizer agent (Kelly Criterion, position sizing)
-- [ ] 03-10-PLAN.md — Graph wiring (replace mocks) + E2E pipeline tests
-- [ ] 03-11-PLAN.md — RAGAs evaluation suite + human verification
+- [x] 03-01-PLAN.md — Shared infra: LLM factory, agent base utilities, deps, Settings update
+- [x] 03-02-PLAN.md — Macro Oracle agent (FRED regime detection)
+- [x] 03-03-PLAN.md — Value Hunter (Bull) agent + valuation models (EPV/EVA/RIM, TDD)
+- [x] 03-04-PLAN.md — Strategist agent (simplified VeTO, FMP earnings)
+- [x] 03-05-PLAN.md — Bear agent (independent adversarial analysis)
+- [x] 03-06-PLAN.md — Guardian agent (Z-Score, M-Score, VoMC, veto logic, TDD)
+- [x] 03-07-PLAN.md — RAG infrastructure (ingestion, retriever, pgvector)
+- [x] 03-08-PLAN.md — Judge agent (Bayesian synthesis, HITL, RAG citations)
+- [x] 03-09-PLAN.md — Optimizer agent (Kelly Criterion, position sizing)
+- [x] 03-10-PLAN.md — Graph wiring (replace mocks) + E2E pipeline tests
+- [x] 03-11-PLAN.md — RAGAs evaluation suite + human verification
 
 **Success Criteria:**
-- [ ] **Macro Oracle** detects regime (expansion/contraction, risk-on/off) from FRED
-- [ ] **Value Hunter (Bull)** calculates intrinsic value with EPV (mature), EVA (tech), RIM (financials)
-- [ ] **Strategist** performs simplified VeTO (keyword extraction + sentiment from earnings calls/news)
-- [ ] **Bear** challenges Bull thesis with red flags + pessimistic valuation distribution
-- [ ] **Bull-Bear iteration** completes 1+ dialectical cycle (Bull refines thesis after Bear challenge)
-- [ ] **Guardian** calculates Altman Z-Score, Beneish M-Score, VoMC fragility + veto logic
-- [ ] **Judge** performs Bayesian synthesis of Bull/Bear distributions → final recommendation
-- [ ] **Optimizer** applies Kelly Criterion for position sizing + sector diversification
-- [ ] **RAG** retrieves citations from 10-Ks, papers, books with Parent Document Retriever
-- [ ] **RAGAs evaluation** measures faithfulness >90% (target >95% for production)
+- [x] **Macro Oracle** detects regime (expansion/contraction, risk-on/off) from FRED
+- [x] **Value Hunter (Bull)** calculates intrinsic value with EPV (mature), EVA (tech), RIM (financials)
+- [x] **Strategist** performs simplified VeTO (keyword extraction + sentiment from earnings calls/news)
+- [x] **Bear** challenges Bull thesis with red flags + pessimistic valuation distribution
+- [x] **Bull-Bear iteration** completes 1+ dialectical cycle (Bull refines thesis after Bear challenge)
+- [x] **Guardian** calculates Altman Z-Score, Beneish M-Score, VoMC fragility + veto logic
+- [x] **Judge** performs Bayesian synthesis of Bull/Bear distributions → final recommendation
+- [x] **Optimizer** applies Kelly Criterion for position sizing + sector diversification
+- [x] **RAG** retrieves citations from 10-Ks, papers, books with Parent Document Retriever
+- [x] **RAGAs evaluation** measures faithfulness >90% (target >95% for production)
 
 **Requirements Mapped:**
 - AGENTS-01: Macro Oracle

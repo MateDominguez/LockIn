@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-03-18
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 03-11 auto tasks done, awaiting human checkpoint)
-**Status:** Phase 2 complete — Phase 3 in progress (03-01 through 03-11 auto tasks done; 03-11 checkpoint pending human verify)
+**Current Phase:** Phase 4 - Integration (Not Started)
+**Status:** Phase 3 complete — All 11 plans verified (11/11 must-haves passed)
 
 ---
 
@@ -18,15 +18,15 @@
 
 ## Current Position
 
-**Phase:** 3 of 6 (Phase 3 — Agents + RAG, Awaiting human checkpoint)
-**Progress:** ██████████████████ 64% (Phase 1 + Phase 2 complete + 03-01 through 03-11 auto tasks done)
-Last activity: 2026-03-18 - Executed 03-11-PLAN.md (auto tasks); checkpoint pending human verify
+**Phase:** 4 of 6 (Phase 4 — Integration, Not Started)
+**Progress:** ████████████████████ 50% (Phase 1 + 2 + 3 complete)
+Last activity: 2026-03-18 - Phase 3 complete (11/11 plans, 11/11 verified)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
-✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [██████████]  ~99%  (11/11 plans: 03-01..03-11 auto tasks done; 03-11 checkpoint pending)
+✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01..02-04 complete)
+✓ Phase 3 - Agents + RAG  [██████████] 100%  (11/11 plans, 11/11 must-haves verified, 170 tests passing)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -220,16 +220,16 @@ Last activity: 2026-03-18 - Executed 03-11-PLAN.md (auto tasks); checkpoint pend
 ## Session Continuity
 
 **Last session:** 2026-03-18
-**Activity:** Executed Phase 3 plan 03-11 auto tasks — RAGAs evaluation module (evaluation.py) + 3 integration tests (test_ragas.py). Stopped at checkpoint:human-verify.
-**Stopped at:** 03-11-PLAN.md auto tasks done (2/2, 2 commits). Checkpoint pending human verification.
+**Activity:** Completed Phase 3 (11/11 plans, verified 11/11 must-haves). 170 tests passing.
+**Stopped at:** Phase 3 complete. Ready for Phase 4 Integration.
 **Resume file:** None
 
-**When resuming (after checkpoint approval):**
+**When resuming:**
 1. Review STATE.md (this file)
-2. Phase 3 is complete after checkpoint is approved — proceed to Phase 4 Integration
-3. RAGAs evaluation: `from lockin.rag.evaluation import evaluate_rag` — runs faithfulness + answer_relevancy
-4. Full pipeline: `from lockin.graph.builder import create_graph` uses all 7 real agents by default
-5. RAG modules: `ls src/lockin/rag/` — ingestion.py, retriever.py, evaluation.py, __init__.py
+2. Start Phase 4 Integration: `/gsd:discuss-phase 4` or `/gsd:plan-phase 4`
+3. All 7 agents ready: macro_oracle, value_hunter, strategist, bear, guardian, judge, optimizer
+4. Full pipeline: `from lockin.graph.builder import create_graph` — uses all real agents
+5. RAG ready: ingestion.py, retriever.py, evaluation.py in src/lockin/rag/
 
 ---
 
@@ -262,15 +262,22 @@ Last activity: 2026-03-18 - Executed 03-11-PLAN.md (auto tasks); checkpoint pend
 **Plan 02-03:** Complete ✓ — validator.py, storage.py, scripts/setup_data_tables.py
 **Plan 02-04:** Complete ✓ — point_in_time.py, __init__.py (public API), tests/integration/test_data_pipeline.py (15 tests)
 
-### Phase 3 - Agents & RAG
-**Status:** In Progress (3/11 plans complete)
-**Dependencies:** Phase 1, 2 complete
+### Phase 3 - Agents & RAG ✓
+**Status:** Complete
+**Completed:** 2026-03-18
+**Verification:** 11/11 must-haves passed
+**Tests:** 170 passing (147 unit, 5 e2e, 18 integration)
 **Plan 03-01:** Complete ✓ — shared infra: LLM factory, typed dataclasses, Settings, InvestmentState typed fields
-**Plan 03-02:** Complete ✓ — Macro Oracle agent: FRED regime detection, ConfidenceModifier (circuit_breaker=False), macro_base_rate signal, 6 unit tests
-**Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, log-normal ValueDistribution (sigma=0.25), 5 red-flag signals, 10 unit tests
-**Plan 03-08:** Complete ✓ — Judge agent: judge_math.py (7-step pure Bayesian algorithm, 35 tests) + judge.py (LangGraph agent, LLM narrative, HITL at p<0.40 or circuit_breaker, 8 tests)
-**Plan 03-10:** Complete ✓ — Graph wiring: real agents as defaults, is_argument_exhausted() Jaccard detection, guardian_modifier.circuit_breaker routing, 5 E2E tests
-**Plan 03-11:** Auto tasks complete ✓ (checkpoint pending) — RAGAs evaluation module: create_eval_dataset + evaluate_rag, graceful no-config degradation, 3 integration tests
+**Plan 03-02:** Complete ✓ — Macro Oracle agent: FRED regime detection, ConfidenceModifier, macro_base_rate signal
+**Plan 03-03:** Complete ✓ — Value Hunter/Bull agent: EPV/EVA/RIM + log-normal ValueDistribution, 33 tests
+**Plan 03-04:** Complete ✓ — Strategist agent: VeTO (variance only, has_base_rate=False) + analyst momentum (Jegadeesh 2004)
+**Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, ValueDistribution (sigma=0.25), 10 tests
+**Plan 03-06:** Complete ✓ — Guardian agent: Altman Z-Score, Beneish M-Score, VoMC, circuit_breaker, 12 tests
+**Plan 03-07:** Complete ✓ — RAG infrastructure: ingestion.py, retriever.py, pgvector, parent/child chunking
+**Plan 03-08:** Complete ✓ — Judge agent: judge_math.py (7-step Bayesian algorithm, 35 tests) + judge.py (HITL at p<0.40, 8 tests)
+**Plan 03-09:** Complete ✓ — Optimizer agent: Kelly/3 (0.33), 10% cap, circuit_breaker_override 2% cap, 16 tests
+**Plan 03-10:** Complete ✓ — Graph wiring: real agents as defaults, is_argument_exhausted() Jaccard, 5 E2E tests
+**Plan 03-11:** Complete ✓ — RAGAs evaluation: create_eval_dataset + evaluate_rag, graceful degradation, 3 tests
 
 ### Phase 4 - Integration
 **Status:** Not Started
