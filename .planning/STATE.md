@@ -1,8 +1,8 @@
 # Project State: AI-Investment Swarm
 
 **Last Updated:** 2026-03-18
-**Current Phase:** Phase 3 - Agents + RAG (In Progress — 8/11 plans done)
-**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
+**Current Phase:** Phase 3 - Agents + RAG (In Progress — 9/11 plans done)
+**Status:** Phase 2 complete — Phase 3 in progress (03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-08, 03-09 done)
 
 ---
 
@@ -19,13 +19,13 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Phase 3 — Agents + RAG, In Progress)
-**Progress:** ███████████████░ 55% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
+**Progress:** ████████████████░ 58% (Phase 1 + Phase 2 complete + 03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-08, 03-09 done)
 
 ```
 ✓ Phase 0 - Planning      [██████████] 100%
 ✓ Phase 1 - Foundation    [██████████] 100%  (3/3 plans, verified 13/13)
 ✓ Phase 2 - Data Layer    [██████████] 100%  (4/4 plans: 02-01, 02-02, 02-03, 02-04 complete)
-  Phase 3 - Agents + RAG  [███████░░░]  73%  (8/11 plans: 03-01, 03-02, 03-03, 03-04, 03-05, 03-06, 03-07, 03-09 done)
+  Phase 3 - Agents + RAG  [████████░░]  82%  (9/11 plans: 03-01..03-09 done, 03-10, 03-11 remaining)
   Phase 4 - Integration   [░░░░░░░░░░]   0%
   Phase 5 - Validation    [░░░░░░░░░░]   0%
   Phase 6 - Interface     [░░░░░░░░░░]   0%
@@ -34,6 +34,15 @@
 ---
 
 ## Recent Decisions
+
+**Plan 03-08 Implementation (2026-03-18):**
+- judge_math.py is pure (no yfinance/LLM/RAG imports) — entire 7-step algorithm testable without mocks; 35 tests run in 0.05s
+- HITL threshold 0.40 (NOT 0.50): p_final < 0.40 = HOLD per Notion spec v1.0; regression guard test `test_judge_no_hitl_p_045` prevents reversion to old Foundation scaffold threshold
+- compute_recommendation decision order: `current_price > precio_target` (PASS for overvaluation) checked BEFORE `p_final < 0.40` (HOLD for low probability) — strict ordering matters for correct behavior
+- KELLY_FRACTION = 0.33 (Kelly/3): more conservative than Kelly/4 since system lacks Phase 5 empirical base rates yet
+- data_quality_factor returns 0.5 when data_coverage.available is empty (neutral weight, prevents zero-weight collapse)
+- current_price fallback = geometric mean of bull/bear expected values when yfinance unavailable (not hardcoded 100.0)
+- Sentinel pattern for mutable default args in test fixtures: use `missing is None` check (not `missing or [default]`) — empty list `[]` is falsy in Python
 
 **Plan 03-09 Implementation (2026-03-18):**
 - KELLY_FRACTION = 0.33 (Kelly/3, NOT Kelly/4) — Notion spec explicitly specifies this; judge_math pre-applies the 1/3 fractional before writing kelly_fraction to JudgeOutput
@@ -169,7 +178,7 @@
 - [x] 03-05: Bear adversarial agent — independent pessimistic EPV + ValueDistribution (DONE)
 - [x] 03-06: Guardian agent (DONE)
 - [x] 03-07: Judge agent (DONE)
-- [ ] 03-08: Judge math / judge_math.py
+- [x] 03-08: Judge agent — judge_math.py (7-step pure algorithm) + judge.py (LangGraph agent), 43 tests (DONE)
 - [x] 03-09: Optimizer agent (DONE)
 - [ ] 03-10: RAG ingestion pipeline
 - [ ] 03-11: RAG retrieval integration
@@ -195,17 +204,17 @@
 ## Session Continuity
 
 **Last session:** 2026-03-18
-**Activity:** Executed Phase 3 plan 03-09 — Optimizer agent (Kelly/3 sizing, 10% cap, CB override cap, 16 unit tests).
-**Stopped at:** Completed 03-09-PLAN.md (2/2 tasks, 2 commits). Phase 3 plan 8 of 11 done.
+**Activity:** Executed Phase 3 plan 03-08 — Judge agent (judge_math.py 7-step pure algorithm + judge.py LangGraph agent, 43 unit tests).
+**Stopped at:** Completed 03-08-PLAN.md (2/2 tasks, 2 commits). Phase 3 plan 9 of 11 done.
 **Resume file:** None
 
 **When resuming:**
 1. Review STATE.md (this file)
-2. Continue with Phase 3 plan 03-08 (Judge math — judge_math.py Bayesian synthesis formulas)
-3. Optimizer ready: `from lockin.agents.optimizer import optimizer, kelly_criterion`
-4. Guardian ready: `from lockin.agents.guardian import guardian`
-5. Judge ready: `from lockin.agents.judge import judge`
-6. Bear ready: `from lockin.agents.bear import bear`
+2. Continue with Phase 3 plan 03-10 (RAG ingestion pipeline) or 03-11 (RAG retrieval integration)
+3. Judge ready: `from lockin.agents.judge import judge` — reads bull/bear ValueDistribution + 3 ConfidenceModifiers, outputs JudgeOutput
+4. Judge math: `from lockin.agents.judge_math import run_judge_algorithm` — pure function, no mocks needed
+5. Optimizer ready: `from lockin.agents.optimizer import optimizer`
+6. All 6 agents (macro_oracle, value_hunter, strategist, bear, guardian, judge) + optimizer complete
 
 ---
 
@@ -244,6 +253,7 @@
 **Plan 03-01:** Complete ✓ — shared infra: LLM factory, typed dataclasses, Settings, InvestmentState typed fields
 **Plan 03-02:** Complete ✓ — Macro Oracle agent: FRED regime detection, ConfidenceModifier (circuit_breaker=False), macro_base_rate signal, 6 unit tests
 **Plan 03-05:** Complete ✓ — Bear adversarial agent: pessimistic EPV, log-normal ValueDistribution (sigma=0.25), 5 red-flag signals, 10 unit tests
+**Plan 03-08:** Complete ✓ — Judge agent: judge_math.py (7-step pure Bayesian algorithm, 35 tests) + judge.py (LangGraph agent, LLM narrative, HITL at p<0.40 or circuit_breaker, 8 tests)
 
 ### Phase 4 - Integration
 **Status:** Not Started
@@ -262,7 +272,7 @@
 ## Git Status
 
 **Branch:** main
-**Last commit:** 7db01f8 — feat(03-09): add 16 unit tests for Optimizer (Kelly, caps, circuit breaker)
+**Last commit:** 3c3e3d5 — feat(03-08): implement judge.py agent integrating judge_math with LangGraph
 
 ---
 
@@ -314,4 +324,4 @@
 ---
 
 *State initialized: 2026-02-08*
-*Last updated: 2026-02-22 after Phase 2 plan 02-02 completion*
+*Last updated: 2026-03-18 after Phase 3 plan 03-08 completion*
