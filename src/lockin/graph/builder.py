@@ -154,7 +154,7 @@ def should_continue_dialectic(state: InvestmentState) -> str:
     if is_argument_exhausted(prev_thesis, curr_thesis):
         return "strategist"
 
-    return "bear"  # continue dialectic
+    return "value_hunter"  # continue dialectic (route back to bull for rebuttal)
 
 
 def should_guardian_veto(state: InvestmentState) -> str:
