@@ -10,10 +10,15 @@ Public API:
     Retrieval:
         get_retriever(k=5) -> retriever | None
         retrieve_with_citations(query, k=5) -> list[dict]
+
+    Evaluation:
+        create_eval_dataset(questions, ground_truths) -> Dataset
+        evaluate_rag(dataset=None, questions=None, ground_truths=None) -> dict
 """
 
 from lockin.rag.ingestion import ingest_pdf, ingest_10k, ingest_transcript
 from lockin.rag.retriever import get_retriever, retrieve_with_citations
+from lockin.rag.evaluation import create_eval_dataset, evaluate_rag
 
 __all__ = [
     "ingest_pdf",
@@ -21,4 +26,6 @@ __all__ = [
     "ingest_transcript",
     "get_retriever",
     "retrieve_with_citations",
+    "create_eval_dataset",
+    "evaluate_rag",
 ]
