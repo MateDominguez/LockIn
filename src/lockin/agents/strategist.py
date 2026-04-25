@@ -222,7 +222,7 @@ Respond with ONLY the JSON object, no other text.
 
 def _llm_sentiment_analysis(
     ticker: str,
-    transcript_excerpt: str,
+    transcript_text: str,
     analyst_summary: str,
     llm: Any,
 ) -> dict:
@@ -236,8 +236,8 @@ def _llm_sentiment_analysis(
 
     human_content = f"""Ticker: {ticker}
 
-EARNINGS TRANSCRIPT EXCERPT (first 3000 chars):
-{transcript_excerpt[:3000] if transcript_excerpt else "(no transcript available)"}
+EARNINGS TRANSCRIPT:
+{transcript_text if transcript_text else "(no transcript available)"}
 
 ANALYST CONSENSUS:
 {analyst_summary}
