@@ -44,26 +44,37 @@ class TestRetrieveWithCitationsReturnsList:
             "relevance_score",
         }
 
-        # Build a fake Document-like object that retriever.invoke() returns
-        fake_doc = MagicMock()
-        fake_doc.page_content = "Revenue increased 15% year-over-year driven by cloud."
-        fake_doc.metadata = {
-            "source_type": "10k",
-            "source_id": "10k:AAPL:2024-11-01",
-            "section": "MD&A",
-            "page": 42,
-            "chunk_index": 7,
+        # Build fake RPC response data (matches Supabase RPC match_documents output)
+        fake_rpc_row = {
+            "content": "Revenue increased 15% year-over-year driven by cloud.",
+            "metadata": {
+                "source_type": "10k",
+                "source_id": "10k:AAPL:2024-11-01",
+                "section": "MD&A",
+                "page": 42,
+                "chunk_index": 7,
+            },
             "similarity": 0.92,
         }
 
-        # Mock the retriever returned by get_retriever
-        fake_retriever = MagicMock()
-        fake_retriever.invoke.return_value = [fake_doc, fake_doc]
+        # Mock Supabase client and RPC call
+        fake_response = MagicMock()
+        fake_response.data = [fake_rpc_row, fake_rpc_row]
+        fake_rpc = MagicMock()
+        fake_rpc.execute.return_value = fake_response
+        fake_client = MagicMock()
+        fake_client.rpc.return_value = fake_rpc
 
-        # Patch get_retriever to return our fake retriever
         monkeypatch.setattr(
-            "lockin.rag.retriever.get_retriever",
-            lambda k=5: fake_retriever,
+            "lockin.rag.retriever._get_supabase_client",
+            lambda: fake_client,
+        )
+        # Mock embeddings to avoid real API call
+        fake_embeddings = MagicMock()
+        fake_embeddings.embed_query.return_value = [0.0] * 3072
+        monkeypatch.setattr(
+            "lockin.rag.retriever._get_embeddings",
+            lambda: fake_embeddings,
         )
 
         from lockin.rag import retrieve_with_citations

@@ -68,8 +68,8 @@ def _fetch_fmp_transcript(ticker: str, fmp_api_key: str) -> tuple[str, bool]:
         return _TRANSCRIPT_CACHE[ticker], True
 
     url = (
-        f"https://financialmodelingprep.com/api/v3/earning_call_transcript/"
-        f"{ticker}?apikey={fmp_api_key}"
+        f"https://financialmodelingprep.com/stable/earning_call_transcript"
+        f"?symbol={ticker}&apikey={fmp_api_key}"
     )
     try:
         response = httpx.get(url, timeout=10.0)

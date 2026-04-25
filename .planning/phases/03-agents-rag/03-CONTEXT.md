@@ -92,8 +92,12 @@ Three document types to ingest:
 - **Debate exhaustion = no new substance**: If an agent's refinement round is semantically
   very similar to its previous version, Judge recognizes the argument is exhausted and stops
   the loop. This mirrors how debates work: you stop when parties have nothing new to add.
-- **FMP for transcripts**: Free tier is 250 req/day. This covers VeTO AND RAG ingestion for
-  the transcript corpus. Manage quota carefully — cache aggressively.
+- **FMP for transcripts**: ~~Free tier is 250 req/day. This covers VeTO AND RAG ingestion for
+  the transcript corpus.~~ **UPDATE 2026-04-25:** FMP migrated to `/stable/` base URL. Earnings
+  call transcripts require ULTIMATE plan ($99/mo) — NOT available on Free/Starter. The Strategist
+  degrades gracefully without transcripts (uses yfinance analyst data + LLM sentiment). RAG corpus
+  can still ingest 10-Ks (EDGAR, free) and PDFs. No free alternative API for transcripts exists
+  per the Notion APIs analysis. Transcript ingestion deferred until FMP ULTIMATE or alternative.
 - **pgvector justification**: Already Supabase users. The Notion schema already defines
   `chunks` and `embeddings` tables. Zero new infrastructure.
 - **3 years of 10-Ks**: Chosen to cover trend analysis without excessive storage. Each 10-K

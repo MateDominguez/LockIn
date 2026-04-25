@@ -1,8 +1,8 @@
 """
 RAG retriever with citation tracking.
 
-Uses SupabaseVectorStore with the rag_documents table and Parent Document
-Retriever pattern. Each retrieved chunk carries citation metadata:
+Uses Supabase RPC (match_documents) to perform vector similarity search on
+the rag_documents table. Each retrieved chunk carries citation metadata:
 source_type, source_id, section, page, chunk_index, relevance_score.
 
 Graceful degradation: returns None / [] when Supabase is not configured.
@@ -20,8 +20,11 @@ logger = logging.getLogger(__name__)
 def _get_supabase_client():
     """Return a Supabase client or None if not configured."""
     supabase_url = os.environ.get("SUPABASE_URL")
-    supabase_key = os.environ.get("SUPABASE_KEY") or os.environ.get(
-        "SUPABASE_SERVICE_KEY"
+    supabase_key = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or os.environ.get("SUPABASE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_KEY")
     )
     if not supabase_url or not supabase_key:
         return None
@@ -35,10 +38,10 @@ def _get_supabase_client():
 
 
 def _get_embeddings():
-    """Return GoogleGenerativeAIEmbeddings for text-embedding-004."""
+    """Return GoogleGenerativeAIEmbeddings for gemini-embedding-001."""
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-    return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 
 def get_retriever(k: int = 5):
@@ -79,6 +82,9 @@ def retrieve_with_citations(query: str, k: int = 5) -> list[dict]:
     """
     Retrieve relevant document chunks with full citation metadata.
 
+    Uses Supabase RPC match_documents directly (bypasses SupabaseVectorStore
+    which has compatibility issues with supabase-py 2.x).
+
     Args:
         query: Natural-language query string.
         k: Number of results to return.
@@ -95,29 +101,34 @@ def retrieve_with_citations(query: str, k: int = 5) -> list[dict]:
 
         Returns [] if retriever is not configured or query fails.
     """
-    retriever = get_retriever(k=k)
-    if retriever is None:
+    client = _get_supabase_client()
+    if client is None:
         return []
 
     try:
-        docs = retriever.invoke(query)
+        embeddings = _get_embeddings()
+        query_vector = embeddings.embed_query(query)
+
+        response = client.rpc(
+            "match_documents",
+            {"query_embedding": query_vector, "match_count": k, "filter": {}},
+        ).execute()
+
+        results: list[dict] = []
+        for row in response.data or []:
+            metadata = row.get("metadata") or {}
+            citation: dict = {
+                "content": row.get("content", ""),
+                "source_type": metadata.get("source_type"),
+                "source_id": metadata.get("source_id"),
+                "section": metadata.get("section"),
+                "page": metadata.get("page"),
+                "chunk_index": metadata.get("chunk_index"),
+                "relevance_score": row.get("similarity"),
+            }
+            results.append(citation)
+
+        return results
     except Exception as exc:
         logger.error("RAG retrieval failed for query %r: %s", query, exc)
         return []
-
-    results: list[dict] = []
-    for doc in docs:
-        metadata = doc.metadata if hasattr(doc, "metadata") else {}
-
-        citation: dict = {
-            "content": doc.page_content if hasattr(doc, "page_content") else str(doc),
-            "source_type": metadata.get("source_type"),
-            "source_id": metadata.get("source_id"),
-            "section": metadata.get("section"),
-            "page": metadata.get("page"),
-            "chunk_index": metadata.get("chunk_index"),
-            "relevance_score": metadata.get("similarity") or metadata.get("score"),
-        }
-        results.append(citation)
-
-    return results

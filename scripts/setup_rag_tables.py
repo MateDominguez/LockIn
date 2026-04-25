@@ -88,21 +88,17 @@ with psycopg.connect(database_url) as conn:
     conn.commit()
 print("      OK — chunks table created")
 
-# Step 4: Create rag_documents table (child chunks + embeddings, 768 dims)
+# Step 4: Create rag_documents table (child chunks + embeddings, 3072 dims for gemini-embedding-001)
 print("\n[4/5] Creating rag_documents table...")
 CREATE_RAG_DOCUMENTS = """
 CREATE TABLE IF NOT EXISTS rag_documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chunk_id UUID REFERENCES chunks(id),
     content TEXT NOT NULL,
-    embedding vector(768),
+    embedding vector(3072),
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now()
 );
-
-CREATE INDEX IF NOT EXISTS idx_rag_documents_vector ON rag_documents
-    USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
 """
 with psycopg.connect(database_url) as conn:
     with conn.cursor() as cur:
@@ -114,7 +110,7 @@ print("      OK — rag_documents table created")
 print("\n[5/5] Creating match_documents RPC function...")
 CREATE_MATCH_FUNCTION = """
 CREATE OR REPLACE FUNCTION match_documents(
-    query_embedding vector(768),
+    query_embedding vector(3072),
     match_count INT DEFAULT 5,
     filter JSONB DEFAULT '{}'
 )

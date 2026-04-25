@@ -88,7 +88,12 @@ def _check_rag_configured() -> bool:
     """Return True if Supabase environment variables are set."""
     return bool(
         os.environ.get("SUPABASE_URL")
-        and (os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_SERVICE_KEY"))
+        and (
+            os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+            or os.environ.get("SUPABASE_ANON_KEY")
+            or os.environ.get("SUPABASE_KEY")
+            or os.environ.get("SUPABASE_SERVICE_KEY")
+        )
     )
 
 
@@ -244,12 +249,20 @@ def evaluate_rag(
     # Run ragas evaluation
     # ------------------------------------------------------------------
     try:
+        # Configure RAGAs to use Gemini instead of OpenAI
+        from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+
+        ragas_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+        ragas_embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+
         # Suppress deprecation warnings from ragas internals during evaluation
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             result = ragas_evaluate(
                 dataset=dataset,
                 metrics=[faithfulness, answer_relevancy],
+                llm=ragas_llm,
+                embeddings=ragas_embeddings,
                 raise_exceptions=False,
                 show_progress=False,
             )

@@ -43,9 +43,9 @@ def _get_db_conn():
 
 
 def _get_embeddings():
-    """Return GoogleGenerativeAIEmbeddings instance for text-embedding-004."""
+    """Return GoogleGenerativeAIEmbeddings instance for gemini-embedding-001."""
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
-    return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 
 def _split_text(text: str) -> tuple[list[str], list[str]]:
@@ -149,46 +149,78 @@ def _store_chunks_and_embeddings(
             parent_ids.append(str(row[0]))
     conn.commit()
 
-    # Embed child chunks in batch
+    # Embed child chunks in batches (respects API rate limits)
+    # Each batch is embedded, inserted, and committed independently so partial
+    # progress is preserved if a later batch fails.
     if not child_chunks:
         return
 
-    try:
-        vectors = embeddings_model.embed_documents(child_chunks)
-    except Exception as exc:
-        logger.error("Embedding failed: %s", exc)
-        raise
+    import time
 
-    # Insert child chunks + rag_documents rows
-    with conn.cursor() as cur:
-        for idx, (text, vector) in enumerate(zip(child_chunks, vectors)):
-            chunk_meta = {**meta, "chunk_type": "child", "chunk_index": idx}
-            cur.execute(
-                """
-                INSERT INTO chunks (document_id, content, chunk_index, is_parent, metadata)
-                VALUES (%s, %s, %s, FALSE, %s::jsonb)
-                RETURNING id
-                """,
-                (document_id, text, idx, json.dumps(chunk_meta)),
-            )
-            chunk_id = str(cur.fetchone()[0])
+    _EMBED_BATCH_SIZE = 50  # Conservative to stay under 100 req/min free-tier
+    _EMBED_RETRY_DELAY = 65  # Seconds to wait on rate-limit (API says ~60s)
+    _MAX_RETRIES = 5
 
-            # rag_documents metadata includes source info for retrieval
-            rag_meta = {
-                **meta,
-                "chunk_index": idx,
-                "document_id": document_id,
-                "chunk_id": chunk_id,
-            }
-            vector_str = "[" + ",".join(str(v) for v in vector) + "]"
-            cur.execute(
-                """
-                INSERT INTO rag_documents (chunk_id, content, embedding, metadata)
-                VALUES (%s, %s, %s::vector, %s::jsonb)
-                """,
-                (chunk_id, text, vector_str, json.dumps(rag_meta)),
-            )
-    conn.commit()
+    for batch_start in range(0, len(child_chunks), _EMBED_BATCH_SIZE):
+        batch_texts = child_chunks[batch_start : batch_start + _EMBED_BATCH_SIZE]
+        batch_num = batch_start // _EMBED_BATCH_SIZE
+
+        # Embed with retry
+        batch_vectors = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                batch_vectors = embeddings_model.embed_documents(batch_texts)
+                break
+            except Exception as exc:
+                if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+                    logger.info(
+                        "Rate limited on batch %d — waiting %ds (attempt %d/%d)",
+                        batch_num, _EMBED_RETRY_DELAY, attempt + 1, _MAX_RETRIES,
+                    )
+                    time.sleep(_EMBED_RETRY_DELAY)
+                else:
+                    logger.error("Embedding failed: %s", exc)
+                    raise
+
+        if batch_vectors is None:
+            logger.error("Batch %d failed after %d retries — skipping", batch_num, _MAX_RETRIES)
+            continue
+
+        # Insert this batch of child chunks + rag_documents and commit
+        with conn.cursor() as cur:
+            for i, (text, vector) in enumerate(zip(batch_texts, batch_vectors)):
+                idx = batch_start + i
+                chunk_meta = {**meta, "chunk_type": "child", "chunk_index": idx}
+                cur.execute(
+                    """
+                    INSERT INTO chunks (document_id, content, chunk_index, is_parent, metadata)
+                    VALUES (%s, %s, %s, FALSE, %s::jsonb)
+                    RETURNING id
+                    """,
+                    (document_id, text, idx, json.dumps(chunk_meta)),
+                )
+                chunk_id = str(cur.fetchone()[0])
+
+                rag_meta = {
+                    **meta,
+                    "chunk_index": idx,
+                    "document_id": document_id,
+                    "chunk_id": chunk_id,
+                }
+                vector_str = "[" + ",".join(str(v) for v in vector) + "]"
+                cur.execute(
+                    """
+                    INSERT INTO rag_documents (chunk_id, content, embedding, metadata)
+                    VALUES (%s, %s, %s::vector, %s::jsonb)
+                    """,
+                    (chunk_id, text, vector_str, json.dumps(rag_meta)),
+                )
+        conn.commit()
+        logger.info("Batch %d committed (%d chunks)", batch_num, len(batch_texts))
+
+        # Pause between batches to stay under rate limit
+        if batch_start + _EMBED_BATCH_SIZE < len(child_chunks):
+            time.sleep(2)
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +294,31 @@ def ingest_pdf(
         conn.close()
 
 
+def _resolve_cik(ticker: str) -> tuple[str, str] | None:
+    """Resolve a stock ticker to (company_name, cik) via SEC EDGAR.
+
+    Returns None if the ticker cannot be resolved.
+    """
+    import httpx
+
+    try:
+        resp = httpx.get(
+            "https://www.sec.gov/files/company_tickers.json",
+            headers={"User-Agent": "LockIn Research research@lockin.dev"},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        for entry in data.values():
+            if entry.get("ticker", "").upper() == ticker.upper():
+                cik = str(entry["cik_str"]).zfill(10)
+                name = entry["title"]
+                return name, cik
+    except Exception as exc:
+        logger.warning("CIK lookup failed for %s: %s", ticker, exc)
+    return None
+
+
 def ingest_10k(ticker: str, years: int = 3) -> list[str]:
     """
     Fetch and ingest SEC 10-K filings for a ticker via the edgar library.
@@ -276,6 +333,7 @@ def ingest_10k(ticker: str, years: int = 3) -> list[str]:
     Notes:
         - Idempotent: subsequent calls for same ticker/year upsert in place.
         - Gracefully returns [] if DATABASE_URL not configured.
+        - edgar 5.x API: Company(name, cik), get_10Ks(), get_10Ks_metadata().
     """
     conn = _get_db_conn()
     if conn is None:
@@ -285,38 +343,48 @@ def ingest_10k(ticker: str, years: int = 3) -> list[str]:
     try:
         from edgar import Company
 
-        company = Company(ticker)
-        filings = company.get_filings(form="10-K").latest(years)
+        resolved = _resolve_cik(ticker)
+        if resolved is None:
+            logger.error("Could not resolve CIK for ticker %s", ticker)
+            return []
+        company_name, cik = resolved
 
-        # edgar may return a single filing or a list
+        company = Company(company_name, cik)
+
+        # get_10Ks() returns list of lxml HTML elements (one per filing)
+        filings = company.get_10Ks()
         if not isinstance(filings, list):
             filings = [filings] if filings is not None else []
+
+        # get_10Ks_metadata() returns list of dicts with filing dates
+        metadata_list = company.get_10Ks_metadata()
+        if not isinstance(metadata_list, list):
+            metadata_list = [metadata_list] if metadata_list is not None else []
+
+        # Limit to requested number of years
+        filings = filings[:years]
+        metadata_list = metadata_list[:years]
 
         document_ids: list[str] = []
         embeddings_model = _get_embeddings()
 
-        for filing in filings:
+        for i, filing in enumerate(filings):
             try:
-                # Extract text — try .text property, fall back to .markdown
-                text = ""
-                if hasattr(filing, "text"):
-                    text = filing.text or ""
-                elif hasattr(filing, "markdown"):
-                    text = filing.markdown or ""
-                elif hasattr(filing, "html"):
-                    # Strip HTML tags as fallback
-                    import re
-                    raw = filing.html or ""
-                    text = re.sub(r"<[^>]+>", " ", raw)
+                # Extract text from lxml element
+                text = filing.text_content() if hasattr(filing, "text_content") else ""
 
                 if not text.strip():
                     logger.warning("10-K for %s yielded no text; skipping", ticker)
                     continue
 
-                # Build source_id from ticker + filing date
-                filing_date = getattr(filing, "filing_date", None) or getattr(
-                    filing, "date", "unknown"
-                )
+                # Get filing date from metadata
+                filing_date = "unknown"
+                if i < len(metadata_list) and isinstance(metadata_list[i], dict):
+                    filing_date = metadata_list[i].get(
+                        "Filing Date",
+                        metadata_list[i].get("Period of Report", "unknown"),
+                    )
+
                 source_id = f"10k:{ticker}:{filing_date}"
                 title = f"{ticker} 10-K {filing_date}"
 
