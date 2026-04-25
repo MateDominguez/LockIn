@@ -110,9 +110,15 @@ def _run_strategist(
     sell: int = 1,
     strong_sell: int = 1,
     fmp_api_key: str = "test_fmp_key_123",
+    earningscall_api_key: str = "",
+    earningscall_result: tuple[str, bool] | None = None,
     ticker: str = "AAPL",
 ) -> dict:
-    """Run strategist() with all external deps mocked, return result dict."""
+    """Run strategist() with all external deps mocked, return result dict.
+
+    By default earningscall returns ("", False) so tests fall through to FMP.
+    Pass earningscall_result=(text, True) to simulate earningscall success.
+    """
     state = {"asset_ticker": ticker, "bull_iteration": 0}
     config = {"configurable": {"thread_id": "test-strategist"}}
 
@@ -120,9 +126,16 @@ def _run_strategist(
     mock_httpx_resp = _make_httpx_response(ticker)
     analyst_df = _make_analyst_summary(strong_buy, buy, hold, sell, strong_sell)
 
+    if earningscall_result is None:
+        earningscall_result = ("", False)
+
     # Patch the module-level transcript cache to avoid cross-test contamination
     with (
         patch("lockin.agents.strategist._TRANSCRIPT_CACHE", {}),
+        patch(
+            "lockin.agents.strategist._fetch_earningscall_transcript",
+            return_value=earningscall_result,
+        ),
         patch("lockin.agents.strategist.httpx.get", return_value=mock_httpx_resp),
         patch("lockin.agents.strategist.yf.Ticker") as mock_ticker_class,
         patch("lockin.agents.strategist.get_llm", return_value=mock_llm),
@@ -130,6 +143,7 @@ def _run_strategist(
             "lockin.agents.strategist.get_settings",
             return_value=MagicMock(
                 fmp_api_key=fmp_api_key,
+                earningscall_api_key=earningscall_api_key,
                 google_api_key="test_google_key",
                 strategist_model="gemini-2.5-flash",
             ),
@@ -312,8 +326,8 @@ def test_strategist_margin_adjustment_analyst_only():
 # ---------------------------------------------------------------------------
 
 
-def test_strategist_no_fmp_key():
-    """Empty fmp_api_key -> skips FMP fetch, still returns valid ConfidenceModifier."""
+def test_strategist_no_transcript_keys():
+    """No transcript API keys -> skips both fetches, still returns valid ConfidenceModifier."""
     state = {"asset_ticker": "MSFT", "bull_iteration": 0}
     config = {"configurable": {"thread_id": "test-strategist-no-fmp"}}
 
@@ -322,6 +336,10 @@ def test_strategist_no_fmp_key():
 
     with (
         patch("lockin.agents.strategist._TRANSCRIPT_CACHE", {}),
+        patch(
+            "lockin.agents.strategist._fetch_earningscall_transcript",
+            return_value=("", False),
+        ),
         patch("lockin.agents.strategist.httpx.get") as mock_http,
         patch("lockin.agents.strategist.yf.Ticker") as mock_ticker_class,
         patch("lockin.agents.strategist.get_llm", return_value=mock_llm),
@@ -329,6 +347,7 @@ def test_strategist_no_fmp_key():
             "lockin.agents.strategist.get_settings",
             return_value=MagicMock(
                 fmp_api_key="",          # Empty key — no FMP fetch
+                earningscall_api_key="",
                 google_api_key="test_google_key",
                 strategist_model="gemini-2.5-flash",
             ),
@@ -347,19 +366,61 @@ def test_strategist_no_fmp_key():
     assert "strategist_modifier" in result
     modifier = result["strategist_modifier"]
     assert isinstance(modifier, ConfidenceModifier), (
-        f"Expected ConfidenceModifier even without FMP, got {type(modifier)}"
+        f"Expected ConfidenceModifier even without transcript APIs, got {type(modifier)}"
     )
     assert modifier.circuit_breaker is False
 
-    # fmp_transcript should be in missing sources
-    assert "fmp_transcript" in modifier.data_coverage.missing, (
-        f"fmp_transcript should be in missing sources when key absent. "
+    # transcript should be in missing sources
+    assert "transcript" in modifier.data_coverage.missing, (
+        f"transcript should be in missing sources when no keys. "
         f"missing={modifier.data_coverage.missing}"
     )
 
 
 # ---------------------------------------------------------------------------
-# Test 8: circuit_breaker is always False regardless of inputs
+# Test 8: EarningsCall transcript used as primary source
+# ---------------------------------------------------------------------------
+
+
+def test_strategist_earningscall_primary():
+    """When EarningsCall returns a transcript, it is used (FMP not called)."""
+    ec_text = "Good morning. We delivered record results this quarter."
+    result = _run_strategist(
+        earningscall_result=(ec_text, True),
+        fmp_api_key="test_fmp_key",
+    )
+    modifier = result["strategist_modifier"]
+
+    assert "earningscall_transcript" in modifier.data_coverage.available, (
+        f"earningscall_transcript should be in available sources. "
+        f"available={modifier.data_coverage.available}"
+    )
+    # FMP should not appear in available (earningscall succeeded, FMP skipped)
+    assert "fmp_transcript" not in modifier.data_coverage.available
+
+
+# ---------------------------------------------------------------------------
+# Test 9: FMP used as fallback when EarningsCall fails
+# ---------------------------------------------------------------------------
+
+
+def test_strategist_fmp_fallback():
+    """When EarningsCall fails, FMP is used as fallback."""
+    result = _run_strategist(
+        earningscall_result=("", False),  # EarningsCall fails
+        fmp_api_key="test_fmp_key",       # FMP available
+    )
+    modifier = result["strategist_modifier"]
+
+    assert "fmp_transcript" in modifier.data_coverage.available, (
+        f"fmp_transcript should be in available (fallback). "
+        f"available={modifier.data_coverage.available}"
+    )
+    assert "earningscall_transcript" not in modifier.data_coverage.available
+
+
+# ---------------------------------------------------------------------------
+# Test 10: circuit_breaker is always False regardless of inputs
 # ---------------------------------------------------------------------------
 
 

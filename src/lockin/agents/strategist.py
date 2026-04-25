@@ -15,7 +15,9 @@ Two primary signals:
 circuit_breaker is ALWAYS False for Strategist — Guardian handles circuit-breaker logic.
 
 Data sources:
-- FMP API: earnings call transcripts (cached per ticker, graceful fallback without key)
+- EarningsCall API (primary): earnings call transcripts via earningscall library.
+  Free tier covers AAPL + MSFT; paid plans cover 5,000+ companies.
+- FMP API (fallback): earnings call transcripts via REST. Requires ULTIMATE plan ($99/mo).
 - yfinance: analyst recommendations_summary
 - LLM (MODEL_FLASH): sentiment scoring + VeTO extraction
 
@@ -49,7 +51,56 @@ _TRANSCRIPT_CACHE: dict[str, str] = {}
 
 
 # ---------------------------------------------------------------------------
-# FMP transcript fetching
+# EarningsCall transcript fetching (primary source)
+# ---------------------------------------------------------------------------
+
+
+def _fetch_earningscall_transcript(ticker: str, api_key: str) -> tuple[str, bool]:
+    """Fetch the most recent earnings call transcript via the earningscall library.
+
+    Returns (transcript_text, success). On any failure returns ("", False)
+    so callers can degrade gracefully.
+
+    Results are cached in _TRANSCRIPT_CACHE keyed as "ec:{ticker}".
+    """
+    cache_key = f"ec:{ticker}"
+    if cache_key in _TRANSCRIPT_CACHE:
+        return _TRANSCRIPT_CACHE[cache_key], True
+
+    try:
+        import earningscall
+
+        if api_key:
+            earningscall.api_key = api_key
+
+        company = earningscall.get_company(ticker)
+        if company is None:
+            return "", False
+
+        # Get the most recent transcript
+        events = list(company.events())
+        if not events:
+            return "", False
+
+        latest = events[0]
+        transcript = company.get_transcript(event=latest)
+        if transcript is None or not transcript.text:
+            return "", False
+
+        text = transcript.text
+        _TRANSCRIPT_CACHE[cache_key] = text
+        return text, True
+
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[Strategist] EarningsCall transcript fetch failed for {ticker}: {exc}",
+            file=sys.stderr,
+        )
+        return "", False
+
+
+# ---------------------------------------------------------------------------
+# FMP transcript fetching (fallback)
 # ---------------------------------------------------------------------------
 
 
@@ -261,13 +312,20 @@ def strategist(state: InvestmentState, config: RunnableConfig) -> dict:
     missing_sources: list[str] = []
 
     # ------------------------------------------------------------------
-    # 1. Fetch FMP earnings transcript
+    # 1. Fetch earnings transcript (EarningsCall → FMP fallback)
     # ------------------------------------------------------------------
-    transcript, fmp_ok = _fetch_fmp_transcript(ticker, settings.fmp_api_key)
-    if fmp_ok:
-        available_sources.append("fmp_transcript")
+    transcript, ec_ok = _fetch_earningscall_transcript(
+        ticker, settings.earningscall_api_key
+    )
+    if ec_ok:
+        available_sources.append("earningscall_transcript")
     else:
-        missing_sources.append("fmp_transcript")
+        # Fallback to FMP
+        transcript, fmp_ok = _fetch_fmp_transcript(ticker, settings.fmp_api_key)
+        if fmp_ok:
+            available_sources.append("fmp_transcript")
+        else:
+            missing_sources.append("transcript")
 
     # ------------------------------------------------------------------
     # 2. Fetch analyst consensus from yfinance

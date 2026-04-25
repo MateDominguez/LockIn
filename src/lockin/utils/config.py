@@ -33,6 +33,7 @@ class Settings:
     google_api_key: str = ""
     fred_api_key: str = ""
     fmp_api_key: str = ""
+    earningscall_api_key: str = ""
     env: str = "development"
     log_level: str = "INFO"
 
@@ -57,6 +58,7 @@ def get_settings() -> Settings:
         google_api_key=os.getenv("GOOGLE_API_KEY", ""),
         fred_api_key=os.getenv("FRED_API_KEY", ""),
         fmp_api_key=os.getenv("FMP_API_KEY", ""),
+        earningscall_api_key=os.getenv("EARNINGSCALL_API_KEY", ""),
         env=os.getenv("ENV", "development"),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
         # Per-agent model fields
