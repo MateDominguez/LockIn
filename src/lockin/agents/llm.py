@@ -55,6 +55,22 @@ def get_llm(
             "GOOGLE_API_KEY not configured. "
             "Set GOOGLE_API_KEY in .env or environment before calling get_llm()."
         )
+
+    # Gemini 2.5 Pro free tier was restricted to 0 RPD after 2026-04-01.
+    # Fall back to Flash when Pro is requested but unavailable (free tier).
+    if model == MODEL_PRO:
+        import os
+
+        if os.environ.get("GEMINI_FORCE_FLASH", "").lower() in ("1", "true"):
+            import logging
+
+            logging.getLogger(__name__).info(
+                "GEMINI_FORCE_FLASH=true — using %s instead of %s",
+                MODEL_FLASH,
+                MODEL_PRO,
+            )
+            model = MODEL_FLASH
+
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=google_api_key,
