@@ -213,14 +213,21 @@ Plans:
 
 ## Phase 4: Integration & Risk Management (2 weeks)
 
-**Goal:** Integrate all agents into cohesive pipeline, finalize Guardian veto logic, Judge Bayesian synthesis, and Optimizer portfolio construction.
+**Goal:** Integrate all agents into cohesive multi-ticker pipeline with VeTO margin wiring, adaptive margin of safety [0.15, 0.60], multi-ticker async fan-out, and portfolio-level optimization with sector/concentration caps.
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — VeTO margin wiring, margin bounds [0.15, 0.60], margin_breakdown in JudgeOutput
+- [ ] 04-02-PLAN.md — Multi-ticker orchestrator with async fan-out and portfolio-level optimizer
+- [ ] 04-03-PLAN.md — Contract tests (17+ tests, zero LLM calls) and live smoke test
 
 **Success Criteria:**
 - [ ] End-to-end flow functional: Macro → Bull ⇄ Bear → Strategist → Guardian → Judge → Optimizer
 - [ ] Guardian veto successfully blocks high-risk assets (tested with known distressed companies)
 - [ ] Judge Bayesian synthesis produces reasonable consensus (tested with divergent Bull/Bear inputs)
-- [ ] Optimizer respects sector limits (max 35% per sector) and concentration caps (max 12% per asset)
-- [ ] Adaptive margin of safety calculates correctly (base 25-30% + risk adjustments)
+- [ ] Optimizer respects sector limits (max 35% per sector) and concentration caps (max 10% per asset)
+- [ ] Adaptive margin of safety calculates correctly (base 30% + agent adjustments, clamped [0.15, 0.60])
 - [ ] HITL triggers activate correctly for low conviction / high divergence cases
 
 **Requirements Mapped:**
@@ -234,12 +241,13 @@ Plans:
 
 **Technical Deliverables:**
 ```python
-# Integration tests for full pipeline (10 test cases)
-# Guardian veto test suite (Z<1.1, M>-2.22, Debt/EBITDA>3x)
-# Judge Bayesian math validation (distribution synthesis)
-# Optimizer portfolio generation with constraints
-# Adaptive margin calculation function
-# HITL trigger logic with test cases
+# VeTO margin thresholds in strategist.py (5 threshold bands)
+# Margin bounds [0.15, 0.60] in judge_math.py
+# margin_breakdown dict in JudgeOutput (6 keys: base, oracle, guardian, strategist, raw_total, clamped)
+# Multi-ticker orchestrator (orchestrator.py): Macro once -> fan-out -> portfolio optimize
+# asyncio.Semaphore(2) + tenacity retry for rate limiting
+# Contract tests (17+ tests, zero LLM calls)
+# Live smoke test (@pytest.mark.slow, real APIs)
 ```
 
 **Dependencies:**
@@ -247,8 +255,9 @@ Plans:
 - Test data: 10-20 tickers covering range of quality/risk profiles
 
 **Risks:**
-- Integration bugs between agents (mitigation: extensive integration tests)
+- Integration bugs between agents (mitigation: extensive contract tests)
 - Bayesian math complexity (mitigation: use existing scipy.stats libraries)
+- asyncio thread safety (mitigation: fresh graph instance per ticker)
 
 ---
 
