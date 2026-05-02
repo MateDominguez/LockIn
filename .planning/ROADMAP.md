@@ -218,8 +218,11 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
+**Wave 1**
 - [ ] 04-01-PLAN.md — VeTO margin wiring, margin bounds [0.15, 0.60], margin_breakdown in JudgeOutput
 - [ ] 04-02-PLAN.md — Multi-ticker orchestrator with async fan-out and portfolio-level optimizer
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 04-03-PLAN.md — Contract tests (17+ tests, zero LLM calls) and live smoke test
 
 **Success Criteria:**
