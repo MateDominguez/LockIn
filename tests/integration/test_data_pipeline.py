@@ -22,7 +22,7 @@ import pytest
 
 from lockin.data.exceptions import DataUnavailableError
 from lockin.data.point_in_time import PointInTimeData
-from lockin.data.types import FundamentalsResult, MacroResult
+from lockin.data.data_types import FundamentalsResult, MacroResult
 from lockin.data.validator import DataValidator
 
 

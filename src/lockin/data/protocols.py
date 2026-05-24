@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Protocol, runtime_checkable
 
-from lockin.data.types import FundamentalsResult, MacroResult
+from lockin.data.data_types import FundamentalsResult, MacroResult
 
 
 @runtime_checkable

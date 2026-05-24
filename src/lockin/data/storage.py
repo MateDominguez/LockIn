@@ -24,7 +24,7 @@ from datetime import date
 
 import psycopg
 
-from lockin.data.types import FundamentalsResult, MacroResult
+from lockin.data.data_types import FundamentalsResult, MacroResult
 
 
 # ---------------------------------------------------------------------------

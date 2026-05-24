@@ -35,7 +35,7 @@ from tenacity import (
 
 from lockin.data.cache import TTL_FUNDAMENTALS, TTLCache
 from lockin.data.exceptions import DataUnavailableError
-from lockin.data.types import FundamentalsResult
+from lockin.data.data_types import FundamentalsResult
 
 # ---------------------------------------------------------------------------
 # Field mappings — yfinance DataFrame index label → FundamentalsResult key

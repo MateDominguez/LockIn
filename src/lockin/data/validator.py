@@ -16,7 +16,7 @@ Design notes:
 
 from __future__ import annotations
 
-from lockin.data.types import FundamentalsResult, ValidationResult, REQUIRED_FUNDAMENTAL_FIELDS
+from lockin.data.data_types import FundamentalsResult, ValidationResult, REQUIRED_FUNDAMENTAL_FIELDS
 from lockin.utils.audit import log_audit_event
 
 

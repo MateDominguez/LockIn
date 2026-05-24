@@ -35,7 +35,7 @@ from datetime import date
 
 from lockin.data.exceptions import DataUnavailableError, LookAheadError  # noqa: F401 (re-export for callers)
 from lockin.data.protocols import DataSourceProtocol, MacroSourceProtocol
-from lockin.data.types import FundamentalsResult, MacroResult
+from lockin.data.data_types import FundamentalsResult, MacroResult
 
 
 # ---------------------------------------------------------------------------

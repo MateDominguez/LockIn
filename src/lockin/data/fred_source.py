@@ -32,7 +32,7 @@ from fredapi import Fred
 
 from lockin.data.cache import TTL_MACRO, TTLCache
 from lockin.data.exceptions import DataUnavailableError
-from lockin.data.types import MacroResult
+from lockin.data.data_types import MacroResult
 from lockin.utils.config import get_settings
 
 # ---------------------------------------------------------------------------

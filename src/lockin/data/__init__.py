@@ -36,7 +36,7 @@ from lockin.data.exceptions import DataUnavailableError, LookAheadError
 from lockin.data.point_in_time import PointInTimeData
 from lockin.data.protocols import DataSourceProtocol, MacroSourceProtocol
 from lockin.data.storage import store_asset, store_fundamentals, store_macro_data
-from lockin.data.types import FundamentalsResult, MacroResult, ValidationResult
+from lockin.data.data_types import FundamentalsResult, MacroResult, ValidationResult
 from lockin.data.validator import DataValidator
 
 if TYPE_CHECKING:
